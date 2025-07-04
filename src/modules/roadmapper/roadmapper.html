@@ -4,19 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prisma Roadmapper</title>
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/themes.css">
+    <!-- Font Awesome for icons, as specified in the theme manifest -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Theme variables -->
+    <link rel="stylesheet" href="css/themes.css">
+    <!-- Main component styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <!-- Main application logic -->
+    <script type="module" src="js/main.js"></script>
 </head>
 <body>
-    <div id="editor-toolbar-container"></div>
-    <div id="viewport-toolbar-container"></div>
+
+    <!-- Container for the main canvas (nodes, paths) -->
     <div id="canvas-container"></div>
-    <div id="minimap-container"></div>
+
+    <!-- Container for the top-left editor toolbar -->
+    <div id="editor-toolbar-container"></div>
+
+    <!-- Container for the top-right viewport controls (zoom, pan) -->
+    <div id="viewport-toolbar-container"></div>
+
+    <!-- Container for the info panel modal -->
     <div id="info-panel-container"></div>
+
+    <!-- Container for the minimap -->
+    <div id="minimap-container"></div>
+
+    <!-- Container for the node editor modal -->
     <div id="node-editor-container"></div>
+
+    <!-- Container for the rich content cards -->
     <div id="card-manager-container"></div>
 
-    <script type="module" src="js/main.js"></script>
 </body>
 </html>

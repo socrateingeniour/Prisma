@@ -1,4 +1,4 @@
-import { store } from './store.js';
+import { store } from '../store.js';
 import { NodeCard } from './cards/NodeCard.js';
 import { CourseCard } from './cards/CourseCard.js';
 import { CollegeProfileCard } from './cards/CollegeProfileCard.js';
