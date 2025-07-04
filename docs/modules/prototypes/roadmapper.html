@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Roadmap Generator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-dark: #10142a;
+            --color-bg-medium: #22284b;
+            --color-accent-mint: #25d0a9;
+            --color-accent-gold: #FFAA00;
+            --color-accent-purple: #a55bf7;
+            --color-accent-blue: #5b8cff;
+            --color-accent-pink: #ff6b9c;
+            --color-accent-teal: #2dd4bf;
+            --color-inactive-blue: #2a3a6d;
+            --color-text: #e0e0e0;
+            --color-text-muted: #8a93c4;
+            --path-stroke-width: 7px;
+        }
+        
+        @keyframes draw-path {
+            to { stroke-dashoffset: 0; }
+        }
+        
+        @keyframes node-enter {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        @keyframes particle-float {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+        
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px currentColor; }
+            100% { box-shadow: 0 0 25px currentColor, 0 0 40px currentColor; }
+        }
+        
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body { 
+            background-color: var(--color-bg-dark); 
+            color: var(--color-text); 
+            padding: 20px; 
+            overflow-x: hidden; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            width: 100%;
+        }
+        
+        header { 
+            text-align: center; 
+            padding: 20px; 
+            width: 100%;
+            position: relative;
+        }
+        
+        h1.plaque { 
+            background-color: var(--color-bg-medium); 
+            padding: 15px 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+            border: 1px solid #3a416f; 
+            display: inline-block; 
+            margin-bottom: 20px; 
+            font-size: 2.5rem;
+            color: var(--color-accent-mint);
+        }
+        
+        /* Edit controls */
+        #edit-controls-container { 
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            z-index: 101; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        
+        .control-button { 
+            background-color: var(--color-bg-medium); 
+            color: var(--color-text); 
+            border: 1px solid #3a416f; 
+            border-radius: 25px; 
+            padding: 10px 15px; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            font-weight: 600; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3); 
+            gap: 8px;
+        }
+        
+        .control-button:hover { 
+            background-color: #3a416f; 
+            border-color: #5b65a5; 
+        }
+        
+        #edit-toggle.active, 
+        #editor-toggle.active { 
+            background-color: var(--color-accent-mint); 
+            color: var(--color-bg-dark); 
+        }
+        
+        #edit-options { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            transition: all 0.3s ease; 
+            background: rgba(16, 20, 42, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 20px;
+            border: 1px solid #3a416f;
+        }
+        
+        #edit-options.hidden { 
+            opacity: 0; 
+            pointer-events: none; 
+            transform: translateY(-10px); 
+        }
+        
+        .option-button { 
+            width: 160px; 
+            text-align: center; 
+            font-size: 0.95rem; 
+            justify-content: flex-start;
+        }
+        
+        .option-button:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+            background-color: var(--color-bg-medium); 
+        }
+        
+        /* Roadmap container */
+        .roadmap-container { 
+            position: relative; 
+            width: 100%;
+            min-height: 100vh;
+            margin: 40px auto;
+        }
+        
+        .path-svg { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 1; 
+            overflow: visible; 
+        }
+        
+        .visible-path, 
+        .secondary-path,
+        .bridge-path { 
+            fill: none; 
+            stroke-linecap: round; 
+            stroke-linejoin: round; 
+            transition: stroke 0.5s ease; 
+        }
+        
+        .visible-path { 
+            stroke-width: var(--path-stroke-width); 
+        }
+        
+        .secondary-path { 
+            stroke-width: 4px; 
+            stroke-dasharray: 2, 8; 
+        }
+        
+        .bridge-path {
+            stroke-width: 8px;
+        }
+        
+        #node-container { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 10; 
+            pointer-events: none; 
+        }
+        
+        /* Roadmap nodes */
+        .roadmap-node { 
+            position: absolute; 
+            opacity: 0; 
+            transform: translate(-50%, -50%); 
+            animation: node-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            pointer-events: auto; 
+            z-index: 20;
+        }
+        
+        .roadmap-node.is-dragging { 
+            z-index: 999; 
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4)); 
+        }
+        
+        .drag-enabled .node-content-wrapper { 
+            cursor: grab; 
+        }
+        
+        .drag-enabled .node-content-wrapper:active { 
+            cursor: grabbing; 
+        }
+        
+        .roadmap-node.inactive .parent-node, 
+        .roadmap-node.inactive .secondary-node { 
+            background-color: var(--color-inactive-blue); 
+        }
+        
+        .parent-node, 
+        .secondary-node { 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: var(--color-bg-dark); 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); 
+            transition: all 0.3s ease; 
+            position: relative;
+        }
+        
+        .parent-node { 
+            width: 90px; 
+            height: 90px; 
+            border: 4px solid var(--color-bg-dark); 
+            font-size: 2.2rem; 
+        }
+        
+        .secondary-node { 
+            width: 65px; 
+            height: 65px; 
+            font-size: 1.6rem; 
+        }
+        
+        .node-content-wrapper:hover .parent-node, 
+        .node-content-wrapper:hover .secondary-node { 
+            transform: scale(1.1); 
+            border-color: #fff; 
+            box-shadow: 0 0 35px rgba(255, 255, 255, 0.3); 
+        }
+        
+        .fas { 
+            transition: filter 0.3s ease, color 0.3s ease; 
+        }
+        
+        .node-content-wrapper:hover .fas { 
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8)); 
+            color: #fff; 
+        }
+        
+        /* Node labels */
+        .node-label { 
+            position: absolute; 
+            padding: 12px 20px; 
+            font-weight: 600; 
+            white-space: nowrap; 
+            color: var(--color-text); 
+            transition: all 0.3s ease; 
+            background-color: var(--color-bg-medium); 
+            border: 1px solid transparent; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+            z-index: 5;
+            font-size: 1.1rem;
+        }
+        
+        .duration-text { 
+            display: block; 
+            font-weight: 400; 
+            font-size: 0.9rem; 
+            transition: all 0.3s ease; 
+            max-height: 0; 
+            opacity: 0; 
+            overflow: hidden; 
+            margin-top: 0; 
+        }
+        
+        .label-pos-right { 
+            left: 140%; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            text-align: left; 
+        }
+        
+        .label-pos-left { 
+            right: 140%; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            text-align: right; 
+        }
+        
+        .label-pos-bottom { 
+            top: 140%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+        }
+        
+        .label-pos-top { 
+            bottom: 140%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+        }
+        
+        .node-content-wrapper:hover .node-label { 
+            color: #fff; 
+            text-shadow: 0 0 5px rgba(255,255,255,0.4); 
+            padding-bottom: 16px; 
+        }
+        
+        .node-content-wrapper:hover .parent-label { 
+            border-color: #fff; 
+        }
+        
+        .node-content-wrapper:hover .duration-text { 
+            max-height: 20px; 
+            opacity: 1; 
+            margin-top: 8px; 
+        }
+        
+        /* End node styling */
+        .end-node .parent-node {
+            position: relative;
+            border: 3px solid var(--color-text);
+            box-shadow: 0 0 0 4px currentColor;
+        }
+        
+        .end-node:hover .parent-node {
+            animation: pulse-glow 1.5s infinite alternate;
+        }
+        
+        /* Particle effect */
+        .end-node:hover .particles {
+            display: block;
+        }
+        
+        .particles {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .particle {
+            position: absolute;
+            background: currentColor;
+            border-radius: 50%;
+            animation: particle-float 1.5s ease-out forwards;
+        }
+        
+        /* Minimap */
+        #minimap-container { 
+            position: fixed; 
+            top: 50%; 
+            right: 25px; 
+            transform: translateY(-50%); 
+            width: 160px; 
+            height: 450px; 
+            background-color: rgba(16, 20, 42, 0.8); 
+            border: 1px solid #3a416f; 
+            border-radius: 10px; 
+            z-index: 99; 
+            backdrop-filter: blur(5px); 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4); 
+            transition: transform 0.4s ease-in-out; 
+        }
+        
+        #minimap-container.hidden { 
+            transform: translateY(-50%) translateX(calc(100% + 70px)); 
+        }
+        
+        .minimap-track { 
+            position: relative; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            border-radius: 9px; 
+        }
+        
+        .minimap-section { 
+            position: absolute; 
+            width: 100%; 
+            transition: opacity 0.5s ease; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .minimap-section:last-child {
+            border-bottom: none;
+        }
+        
+        .minimap-section:not(.active) { 
+            opacity: 0.5; 
+        }
+        
+        .minimap-section:hover:not(.active) { 
+            opacity: 0.8; 
+        }
+        
+        .minimap-section.active {
+            background: rgba(58, 65, 111, 0.4);
+            opacity: 1;
+        }
+        
+        .minimap-section-label { 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            color: #fff; 
+            text-align: center;
+            width: 100%;
+        }
+        
+        .minimap-section-label .fas { 
+            margin-right: 8px; 
+            font-size: 1.2rem;
+        }
+        
+        .minimap-thumb { 
+            position: absolute; 
+            left: 2px; 
+            right: 2px; 
+            width: auto; 
+            border-radius: 8px; 
+            cursor: grab; 
+            background: rgba(255,255,255,0.2); 
+            border: 1px solid rgba(255,255,255,0.4); 
+            transition: top 0.1s linear, height 0.1s linear; 
+            z-index: 10; 
+        }
+        
+        #minimap-toggle { 
+            position: fixed; 
+            top: 50%; 
+            right: 195px; 
+            transform: translateY(-50%); 
+            width: 40px; 
+            height: 40px; 
+            background-color: var(--color-bg-medium); 
+            border: 1px solid #3a416f; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            z-index: 100; 
+            transition: transform 0.4s ease-in-out, right 0.4s ease-in-out; 
+        }
+        
+        #minimap-container.hidden + #minimap-toggle { 
+            right: 25px; 
+        }
+        
+        #minimap-toggle .fas { 
+            transition: transform 0.4s ease; 
+        }
+        
+        #minimap-container.hidden + #minimap-toggle .fas { 
+            transform: rotate(180deg); 
+        }
+        
+        /* Footer */
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            padding: 20px;
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+            width: 100%;
+        }
+        
+        /* Section management */
+        #section-manager {
+            background: var(--color-bg-medium);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 800px;
+            border: 1px solid #3a416f;
+            display: none;
+        }
+        
+        #section-manager.visible {
+            display: block;
+        }
+        
+        #section-manager h3 {
+            color: var(--color-accent-mint);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #sections-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .section-tag {
+            background: rgba(16, 20, 42, 0.7);
+            border: 1px solid #3a416f;
+            border-radius: 20px;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .section-tag:hover {
+            background: rgba(58, 65, 111, 0.7);
+        }
+        
+        .section-tag.active {
+            background: var(--color-accent-mint);
+            color: var(--color-bg-dark);
+        }
+        
+        /* Info button */
+        #info-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background: var(--color-bg-medium);
+            border: 1px solid #3a416f;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+        
+        /* Editor toggle button */
+        #editor-toggle-button {
+            position: fixed;
+            bottom: 70px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background: var(--color-bg-medium);
+            border: 1px solid #3a416f;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+        
+        #editor-toggle-button.active {
+            background-color: var(--color-accent-mint);
+            color: var(--color-bg-dark);
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            overflow: auto;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: var(--color-bg-medium);
+            border-radius: 20px;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            position: relative;
+            border: 1px solid #3a416f;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--color-text);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal h2 {
+            color: var(--color-accent-mint);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .modal h3 {
+            color: var(--color-accent-gold);
+            margin: 25px 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal h3 i {
+            width: 30px;
+        }
+        
+        .modal ul {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .modal li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        .modal p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .modal .note {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--color-accent-mint);
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        /* Node Editor */
+        #node-editor {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-bg-medium);
+            border-radius: 15px;
+            padding: 25px;
+            z-index: 1000;
+            border: 1px solid #3a416f;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none;
+            width: 350px;
+        }
+        
+        #node-editor.visible {
+            display: block;
+        }
+        
+        #node-editor h3 {
+            color: var(--color-accent-mint);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            background: var(--color-bg-dark);
+            border: 1px solid #3a416f;
+            color: var(--color-text);
+        }
+        
+        .icon-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .icon-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-bg-dark);
+            border: 1px solid #3a416f;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .icon-option:hover, .icon-option.selected {
+            background: var(--color-accent-mint);
+            color: var(--color-bg-dark);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--color-accent-mint);
+            color: var(--color-bg-dark);
+        }
+        
+        .btn-secondary {
+            background: var(--color-bg-dark);
+            color: var(--color-text);
+            border: 1px solid #3a416f;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1000px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #minimap-container {
+                display: none;
+            }
+            
+            #minimap-toggle {
+                display: none;
+            }
+            
+            #edit-controls-container {
+                flex-direction: row;
+                bottom: 20px;
+                top: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                gap: 5px;
+            }
+            
+            .control-button {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .option-button {
+                width: auto;
+            }
+            
+            #edit-options {
+                flex-direction: row;
+                flex-wrap: wrap;
+                max-width: 90vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Edit Mode controls -->
+    <div id="edit-controls-container">
+        <button id="edit-toggle" class="control-button"><i class="fas fa-pencil-alt"></i></button>
+        
+        <div id="edit-options" class="hidden">
+            <button id="lock-mode-toggle" class="control-button option-button">
+                <i class="fas fa-lock"></i> Lock: Locked
+            </button>
+            <button id="path-style-toggle" class="control-button option-button">
+                <i class="fas fa-project-diagram"></i> Style: Structured
+            </button>
+            <button id="add-section" class="control-button option-button">
+                <i class="fas fa-plus"></i> Add Section
+            </button>
+            <button id="add-node" class="control-button option-button">
+                <i class="fas fa-circle"></i> Add Node
+            </button>
+            <button id="save-roadmap" class="control-button option-button">
+                <i class="fas fa-save"></i> Save Roadmap
+            </button>
+        </div>
+    </div>
+    
+    <div id="info-button" title="App Information">
+        <i class="fas fa-info"></i>
+    </div>
+    
+    <div id="editor-toggle-button" title="Toggle Editor Mode">
+        <i class="fas fa-edit"></i>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1 class="plaque">Game Development Pathway</h1>
+        </header>
+
+        <div class="roadmap-container" id="roadmap-container">
+            <svg class="path-svg">
+                <defs>
+                    <linearGradient id="path-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop id="grad-stop-1" offset="0%" />
+                        <stop id="grad-stop-2" offset="100%" />
+                    </linearGradient>
+                    
+                    <!-- Bridge gradients -->
+                    <linearGradient id="bridge-indie-aaa" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#25d0a9" />
+                        <stop offset="100%" stop-color="#FFAA00" />
+                    </linearGradient>
+                    <linearGradient id="bridge-aaa-design" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#FFAA00" />
+                        <stop offset="100%" stop-color="#a55bf7" />
+                    </linearGradient>
+                    <linearGradient id="bridge-design-marketing" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#a55bf7" />
+                        <stop offset="100%" stop-color="#5b8cff" />
+                    </linearGradient>
+                </defs>
+                <g id="path-group"></g>
+            </svg>
+            <div id="node-container"></div>
+        </div>
+    </div>
+    
+    <div id="minimap-container">
+        <div class="minimap-track"></div>
+    </div>
+    <div id="minimap-toggle"><i class="fas fa-chevron-right"></i></div>
+    
+    <div id="roadmap-data" style="display: none;">
+        <!-- Sections -->
+        <div class="section-data" data-id="indie" data-title="Indie Focus" data-icon="fa-gamepad" data-color="#25d0a9"></div>
+        <div class="section-data" data-id="aaa" data-title="AAA Focus" data-icon="fa-building" data-color="#FFAA00"></div>
+        <div class="section-data" data-id="design" data-title="Design Phase" data-icon="fa-pencil-ruler" data-color="#a55bf7"></div>
+        <div class="section-data" data-id="marketing" data-title="Marketing" data-icon="fa-bullhorn" data-color="#5b8cff"></div>
+        
+        <!-- Nodes -->
+        <div class="node-data" data-id="concept" data-type="parent" data-college="indie" data-title="Concept" data-icon="fa-lightbulb" data-y="100" data-duration="1-2 Weeks"></div>
+        <div class="node-data" data-id="prototype" data-type="parent" data-college="indie" data-title="Prototype" data-icon="fa-puzzle-piece" data-y="375" data-duration="4-6 Weeks"></div>
+        <div class="node-data" data-id="alpha" data-type="parent" data-college="indie" data-title="Alpha" data-icon="fa-vial" data-y="650" data-duration="3 Months"></div>
+        
+        <div class="node-data" data-id="beta" data-type="parent" data-college="aaa" data-title="Beta" data-icon="fa-users" data-y="925" data-duration="6 Months"></div>
+        <div class="node-data" data-id="release" data-type="parent" data-college="aaa" data-title="Release" data-icon="fa-rocket" data-y="1200" data-duration="1 Month"></div>
+        <div class="node-data" data-id="post-launch" data-type="parent" data-college="aaa" data-title="Post-Launch" data-icon="fa-sync-alt" data-y="1475" data-duration="Ongoing"></div>
+        
+        <div class="node-data" data-id="design-phase" data-type="parent" data-college="design" data-title="Design Phase" data-icon="fa-drafting-compass" data-y="1750" data-duration="2-3 Months"></div>
+        <div class="node-data" data-id="market-research" data-type="parent" data-college="marketing" data-title="Market Research" data-icon="fa-chart-line" data-y="2000" data-duration="1 Month"></div>
+        
+        <!-- Secondary nodes -->
+        <div class="node-data" data-id="skill-gdd" data-type="secondary" data-college="indie" data-title="Game Design Doc" data-icon="fa-file-alt" data-parent-id="concept" data-offset-x="350"></div>
+        <div class="node-data" data-id="skill-physics" data-type="secondary" data-college="indie" data-title="Physics System" data-icon="fa-atom" data-parent-id="prototype" data-offset-x="350"></div>
+        <div class="node-data" data-id="skill-art" data-type="secondary" data-college="indie" data-title="Art Assets" data-icon="fa-palette" data-parent-id="prototype" data-offset-x="350" data-offset-y="-100"></div>
+        <div class="node-data" data-id="skill-qa" data-type="secondary" data-college="indie" data-title="QA Testing" data-icon="fa-clipboard-check" data-parent-id="alpha" data-offset-x="350"></div>
+        
+        <div class="node-data" data-id="skill-optimization" data-type="secondary" data-college="aaa" data-title="Optimization" data-icon="fa-tachometer-alt" data-parent-id="beta" data-offset-x="-350"></div>
+        <div class="node-data" data-id="skill-localization" data-type="secondary" data-college="aaa" data-title="Localization" data-icon="fa-globe" data-parent-id="release" data-offset-x="-350"></div>
+        
+        <div class="node-data" data-id="skill-ui" data-type="secondary" data-college="design" data-title="UI/UX Design" data-icon="fa-object-group" data-parent-id="design-phase" data-offset-x="350"></div>
+        <div class="node-data" data-id="skill-story" data-type="secondary" data-college="design" data-title="Story Design" data-icon="fa-book" data-parent-id="design-phase" data-offset-x="350" data-offset-y="-100"></div>
+    </div>
+    
+    <div id="section-manager">
+        <h3><i class="fas fa-layer-group"></i> Active Section</h3>
+        <div id="sections-list"></div>
+    </div>
+    
+    <footer>
+        <p>Interactive Roadmap Generator • Created with HTML, CSS & JavaScript</p>
+        <p>Drag nodes to reorganize • Switch between editing modes using the panel on top-left</p>
+    </footer>
+    
+    <!-- Node Editor -->
+    <div id="node-editor">
+        <h3>Edit Node</h3>
+        <div class="form-group">
+            <label for="node-title">Title:</label>
+            <input type="text" id="node-title" placeholder="Node title">
+        </div>
+        <div class="form-group">
+            <label for="node-duration">Duration:</label>
+            <input type="text" id="node-duration" placeholder="Duration (optional)">
+        </div>
+        <div class="form-group">
+            <label>Icon:</label>
+            <div class="icon-options">
+                <div class="icon-option" data-icon="fa-lightbulb"><i class="fas fa-lightbulb"></i></div>
+                <div class="icon-option" data-icon="fa-puzzle-piece"><i class="fas fa-puzzle-piece"></i></div>
+                <div class="icon-option" data-icon="fa-vial"><i class="fas fa-vial"></i></div>
+                <div class="icon-option" data-icon="fa-users"><i class="fas fa-users"></i></div>
+                <div class="icon-option" data-icon="fa-rocket"><i class="fas fa-rocket"></i></div>
+                <div class="icon-option" data-icon="fa-sync-alt"><i class="fas fa-sync-alt"></i></div>
+                <div class="icon-option" data-icon="fa-drafting-compass"><i class="fas fa-drafting-compass"></i></div>
+                <div class="icon-option" data-icon="fa-chart-line"><i class="fas fa-chart-line"></i></div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button id="cancel-edit" class="btn btn-secondary">Cancel</button>
+            <button id="save-node" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+    
+    <!-- Info Modal -->
+    <div id="info-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+            <h2>Roadmap Generator Documentation</h2>
+            
+            <h3><i class="fas fa-road"></i> Overview</h3>
+            <p>This interactive roadmap generator allows you to visualize and organize complex processes with nodes and sections. Each section represents a phase in your roadmap, and nodes represent milestones or tasks.</p>
+            
+            <h3><i class="fas fa-cogs"></i> Core Components</h3>
+            <ul>
+                <li><strong>Sections</strong> - Represent phases or categories in your roadmap</li>
+                <li><strong>Parent Nodes</strong> - Major milestones in each section</li>
+                <li><strong>Child Nodes</strong> - Sub-tasks or skills related to a parent node</li>
+                <li><strong>Paths</strong> - Connect nodes and sections visually</li>
+            </ul>
+            
+            <h3><i class="fas fa-edit"></i> Editing Features</h3>
+            <ul>
+                <li><strong>Editor Mode</strong> - Toggle to enable editing features</li>
+                <li><strong>Movement Lock</strong> - Choose between Locked, Limited, and Freeform modes</li>
+                <li><strong>Path Style</strong> - Switch between Organic (curved) and Structured (angled) paths</li>
+                <li><strong>Add Section</strong> - Create new sections with random colors</li>
+                <li><strong>Add Node</strong> - Add milestones to the active section</li>
+                <li><strong>Node Editing</strong> - Double-click any node to edit its details</li>
+            </ul>
+            
+            <h3><i class="fas fa-mouse-pointer"></i> Navigation</h3>
+            <ul>
+                <li><strong>Minimap</strong> - Navigate between sections quickly</li>
+                <li><strong>Drag Nodes</strong> - In Limited or Freeform mode, drag nodes to reorganize</li>
+                <li><strong>Section Manager</strong> - View and select active sections</li>
+            </ul>
+            
+            <h3><i class="fas fa-code"></i> Technical Details</h3>
+            <ul>
+                <li>Built with HTML5, CSS3, and vanilla JavaScript</li>
+                <li>SVG for dynamic path rendering</li>
+                <li>Font Awesome for icons</li>
+                <li>Fully responsive design</li>
+            </ul>
+            
+            <h3><i class="fas fa-lightbulb"></i> Tips & Tricks</h3>
+            <ul>
+                <li>Use branching sections to create parallel development paths</li>
+                <li>Hover over end nodes for special effects</li>
+                <li>Labels automatically reposition to avoid overlapping</li>
+                <li>Bridge paths show gradient transitions between sections</li>
+            </ul>
+            
+            <h3><i class="fas fa-bug"></i> Known Issues & Fixes</h3>
+            <div class="note">
+                <p><strong>Issue:</strong> Bridge paths for new sections weren't gradient</p>
+                <p><strong>Fix:</strong> Implemented dynamic gradient generation for all bridges</p>
+            </div>
+            
+            <div class="note">
+                <p><strong>Issue:</strong> Couldn't create parallel branches</p>
+                <p><strong>Fix:</strong> Enhanced section creation to support parallel branching</p>
+            </div>
+            
+            <div class="note">
+                <p><strong>Issue:</strong> Minimap didn't update selection properly</p>
+                <p><strong>Fix:</strong> Improved minimap highlighting logic</p>
+            </div>
+            
+            <div class="note">
+                <p><strong>Issue:</strong> Labels overlapped with nodes and paths</p>
+                <p><strong>Fix:</strong> Enhanced collision detection algorithm</p>
+            </div>
+            
+            <div class="note">
+                <p><strong>Issue:</strong> Editor mode toggle placement</p>
+                <p><strong>Fix:</strong> Moved editor toggle to bottom left with info button</p>
+            </div>
+            
+            <h3><i class="fas fa-sitemap"></i> Architecture</h3>
+            <p>The roadmap is built with a modular architecture:</p>
+            <ul>
+                <li><strong>Data Layer:</strong> Stores section and node information in hidden divs</li>
+                <li><strong>Rendering Engine:</strong> Dynamically positions nodes and draws paths</li>
+                <li><strong>Interaction System:</strong> Handles dragging, editing, and UI interactions</li>
+                <li><strong>State Management:</strong> Tracks editor mode, lock state, and active section</li>
+            </ul>
+            
+            <h3><i class="fas fa-wrench"></i> Implementation Details</h3>
+            <p>Key implementation techniques:</p>
+            <ul>
+                <li>SVG paths are generated dynamically based on node positions</li>
+                <li>Collision detection uses bounding box calculations</li>
+                <li>Particle effects are generated with CSS animations</li>
+                <li>Drag-and-drop uses relative positioning calculations</li>
+                <li>State is managed through JavaScript variables</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const layoutConfig = { 
+                centerX: 450, 
+                nodeSpacingX: 250, 
+                cornerRadius: 40, 
+                animation: { nodePopDelay: 0.05 } 
+            };
+            
+            // Global state
+            let lockState = 'locked';   // 'locked', 'limited', 'free'
+            let pathStyle = 'structured';    // 'structured', 'organic'
+            let nodePositions = {};
+            let allSections = [];
+            let allNodesData = [];
+            let activeSectionId = 'indie';
+            let editorMode = false;
+            let selectedNode = null;
+            let editingNode = null;
+            let isProgrammaticScroll = false;
+            
+            // Available colors for new sections
+            const availableColors = [
+                '#25d0a9', '#FFAA00', '#a55bf7', '#5b8cff', 
+                '#ff6b9c', '#2dd4bf', '#f97316', '#8b5cf6'
+            ];
+            
+            // DOM elements
+            const nodeContainer = document.getElementById('node-container');
+            const pathGroup = document.getElementById('path-group');
+            const editToggleBtn = document.getElementById('edit-toggle');
+            const editorToggleBtn = document.getElementById('editor-toggle-button');
+            const editOptionsPanel = document.getElementById('edit-options');
+            const lockModeBtn = document.getElementById('lock-mode-toggle');
+            const pathStyleBtn = document.getElementById('path-style-toggle');
+            const addSectionBtn = document.getElementById('add-section');
+            const addNodeBtn = document.getElementById('add-node');
+            const saveRoadmapBtn = document.getElementById('save-roadmap');
+            const minimapContainer = document.getElementById('minimap-container');
+            const minimapToggle = document.getElementById('minimap-toggle');
+            const roadmapContainer = document.getElementById('roadmap-container');
+            const sectionsList = document.getElementById('sections-list');
+            const sectionManager = document.getElementById('section-manager');
+            const infoButton = document.getElementById('info-button');
+            const infoModal = document.getElementById('info-modal');
+            const closeModal = document.querySelector('.close-modal');
+            const nodeEditor = document.getElementById('node-editor');
+            const nodeTitleInput = document.getElementById('node-title');
+            const nodeDurationInput = document.getElementById('node-duration');
+            const saveNodeBtn = document.getElementById('save-node');
+            const cancelEditBtn = document.getElementById('cancel-edit');
+            
+            // Parse data from HTML
+            function parseNodesFromHTML() {
+                const sections = [];
+                const nodes = [];
+                
+                // Parse sections
+                document.querySelectorAll('#roadmap-data .section-data').forEach(el => {
+                    const data = el.dataset;
+                    sections.push({
+                        id: data.id,
+                        title: data.title,
+                        icon: data.icon,
+                        color: data.color
+                    });
+                });
+                
+                // Parse nodes
+                document.querySelectorAll('#roadmap-data .node-data').forEach(el => {
+                    const data = el.dataset;
+                    const node = { 
+                        id: data.id, 
+                        type: data.type, 
+                        college: data.college, 
+                        title: data.title, 
+                        icon: data.icon, 
+                        duration: data.duration || null 
+                    };
+                    
+                    if (node.type === 'parent') { 
+                        node.y = parseInt(data.y, 10); 
+                    } else { 
+                        node.parentId = data.parentId; 
+                        node.offset = { 
+                            x: parseInt(data.offsetX, 10) || 0, 
+                            y: parseInt(data.offsetY, 10) || 0 
+                        }; 
+                    }
+                    
+                    nodes.push(node);
+                });
+                
+                return { sections, nodes };
+            }
+            
+            // Calculate initial node positions
+            function calculateInitialNodePositions() {
+                const positions = {}; 
+                const parentNodes = allNodesData.filter(n => n.type === 'parent');
+                
+                // Position parent nodes
+                parentNodes.forEach((node, index) => { 
+                    positions[node.id] = { 
+                        x: layoutConfig.centerX + ((index % 2 === 0) ? -layoutConfig.nodeSpacingX / 1.5 : layoutConfig.nodeSpacingX / 1.5), 
+                        y: node.y 
+                    }; 
+                });
+                
+                // Position child nodes
+                const childrenByParent = allNodesData.reduce((acc, node) => {
+                    if (node.type === 'secondary') { 
+                        if (!acc[node.parentId]) acc[node.parentId] = []; 
+                        acc[node.parentId].push(node); 
+                    } 
+                    return acc;
+                }, {});
+                
+                for (const parentId in childrenByParent) {
+                    const childNodes = childrenByParent[parentId]; 
+                    const parentPos = positions[parentId]; 
+                    const parentIsOnRight = parentPos.x > layoutConfig.centerX;
+                    
+                    childNodes.forEach((childNode) => {
+                        const xOffset = parentIsOnRight ? childNode.offset.x : -childNode.offset.x;
+                        const yOffset = childNode.offset.y || 0;
+                        positions[childNode.id] = { 
+                            x: parentPos.x + xOffset, 
+                            y: parentPos.y + yOffset 
+                        };
+                    });
+                }
+                
+                return positions;
+            }
+            
+            // Get section color by ID
+            function getSectionColor(sectionId) {
+                const section = allSections.find(s => s.id === sectionId);
+                return section ? section.color : '#25d0a9';
+            }
+            
+            // Create particle effect for end nodes
+            function createParticleEffect(nodeEl, color) {
+                const particles = document.createElement('div');
+                particles.className = 'particles';
+                
+                for (let i = 0; i < 15; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.setProperty('--tx', `${Math.random() * 100 - 50}px`);
+                    particle.style.setProperty('--ty', `${Math.random() * 100 - 50}px`);
+                    particle.style.backgroundColor = color;
+                    particle.style.width = `${Math.random() * 6 + 2}px`;
+                    particle.style.height = particle.style.width;
+                    particle.style.left = '50%';
+                    particle.style.top = '50%';
+                    particle.style.animationDelay = `${Math.random() * 0.5}s`;
+                    particles.appendChild(particle);
+                }
+                
+                nodeEl.querySelector('.node-content-wrapper').appendChild(particles);
+            }
+            
+            // Render nodes
+            function renderNodes(positions) {
+                let nodesHTML = '';
+                
+                // Identify end nodes for sections
+                const sectionEndNodes = {};
+                allNodesData.forEach(node => {
+                    if (node.type === 'parent') {
+                        sectionEndNodes[node.college] = node.id;
+                    }
+                });
+                
+                // Render each node
+                allNodesData.forEach((node, i) => {
+                    const pos = positions[node.id]; 
+                    let isParent = node.type === 'parent';
+                    
+                    // Determine label position
+                    let labelPosClass = '';
+                    const parentIsOnRight = isParent ? 
+                        pos.x > layoutConfig.centerX : 
+                        positions[node.parentId].x > layoutConfig.centerX;
+                    
+                    if (isParent) { 
+                        labelPosClass = parentIsOnRight ? 'label-pos-left' : 'label-pos-right'; 
+                    } else { 
+                        labelPosClass = parentIsOnRight ? 'label-pos-right' : 'label-pos-left'; 
+                    }
+                    
+                    const durationHTML = node.duration ? `<small class="duration-text" style="color: ${getSectionColor(node.college)}">${node.duration}</small>` : '';
+                    const parentLabelClass = isParent ? 'parent-label' : '';
+                    
+                    // Get section color
+                    const sectionColor = getSectionColor(node.college);
+                    
+                    // Check if this is an end node
+                    const isEndNode = sectionEndNodes[node.college] === node.id;
+                    
+                    nodesHTML += `
+                        <div class="roadmap-node" 
+                             id="${node.id}" 
+                             data-college="${node.college}"
+                             data-node-id="${node.id}"
+                             style="left: ${pos.x}px; top: ${pos.y}px; 
+                                    animation-delay: ${i * layoutConfig.animation.nodePopDelay}s;">
+                            <div class="node-content-wrapper">
+                                <div class="node-label ${labelPosClass} ${parentLabelClass}">
+                                    ${node.title}${durationHTML}
+                                </div>
+                                <div class="${node.type}-node" style="background-color: ${sectionColor};">
+                                    <i class="fas ${node.icon}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                nodeContainer.innerHTML = nodesHTML;
+                
+                // Make nodes draggable
+                document.querySelectorAll('.roadmap-node').forEach(nodeEl => {
+                    makeNodeDraggable(nodeEl);
+                    
+                    // Add particle effects to end nodes
+                    const sectionId = nodeEl.dataset.college;
+                    const isEndNode = sectionEndNodes[sectionId] === nodeEl.id;
+                    
+                    if (isEndNode) {
+                        const sectionColor = getSectionColor(sectionId);
+                        createParticleEffect(nodeEl, sectionColor);
+                    }
+                    
+                    // Add double-click for editing
+                    nodeEl.addEventListener('dblclick', () => {
+                        if (editorMode) {
+                            openNodeEditor(nodeEl.dataset.nodeId);
+                        }
+                    });
+                });
+                
+                // Position labels to avoid collisions
+                document.querySelectorAll('.roadmap-node').forEach(nodeEl => {
+                    positionLabel(nodeEl);
+                });
+            }
+            
+            // Position labels to avoid collisions
+            function positionLabel(nodeEl) {
+                const label = nodeEl.querySelector('.node-label');
+                const nodeRect = nodeEl.getBoundingClientRect();
+                const viewportWidth = document.documentElement.clientWidth;
+                const viewportHeight = window.innerHeight;
+                
+                // Available positions
+                const positions = [
+                    { class: 'label-pos-right', overlap: 0 },
+                    { class: 'label-pos-left', overlap: 0 },
+                    { class: 'label-pos-bottom', overlap: 0 },
+                    { class: 'label-pos-top', overlap: 0 }
+                ];
+                
+                // Reset label position
+                label.className = 'node-label';
+                
+                // Calculate overlap for each position
+                positions.forEach(pos => {
+                    label.classList.add(pos.class);
+                    const labelRect = label.getBoundingClientRect();
+                    
+                    // Check if label is within viewport
+                    const withinViewport = 
+                        labelRect.left >= 0 && 
+                        labelRect.right <= viewportWidth &&
+                        labelRect.top >= 0 && 
+                        labelRect.bottom <= viewportHeight;
+                    
+                    if (!withinViewport) {
+                        pos.overlap = Infinity;
+                        label.classList.remove(pos.class);
+                        return;
+                    }
+                    
+                    // Check for collisions with other labels
+                    let overlap = 0;
+                    document.querySelectorAll('.node-label').forEach(otherLabel => {
+                        if (otherLabel !== label) {
+                            const otherRect = otherLabel.getBoundingClientRect();
+                            
+                            // Calculate overlap area
+                            const xOverlap = Math.max(0, Math.min(labelRect.right, otherRect.right) - Math.max(labelRect.left, otherRect.left));
+                            const yOverlap = Math.max(0, Math.min(labelRect.bottom, otherRect.bottom) - Math.max(labelRect.top, otherRect.top));
+                            overlap += xOverlap * yOverlap;
+                        }
+                    });
+                    
+                    // Check for collisions with nodes
+                    document.querySelectorAll('.roadmap-node').forEach(otherNode => {
+                        if (otherNode !== nodeEl) {
+                            const otherRect = otherNode.getBoundingClientRect();
+                            const xOverlap = Math.max(0, Math.min(labelRect.right, otherRect.right) - Math.max(labelRect.left, otherRect.left));
+                            const yOverlap = Math.max(0, Math.min(labelRect.bottom, otherRect.bottom) - Math.max(labelRect.top, otherRect.top));
+                            overlap += xOverlap * yOverlap * 2; // Higher weight for node collisions
+                        }
+                    });
+                    
+                    // Avoid center path area
+                    const centerX = viewportWidth / 2;
+                    const centerBuffer = 150;
+                    if (Math.abs(labelRect.left - centerX) < centerBuffer) {
+                        overlap += 1000; // Penalize positions near center
+                    }
+                    
+                    pos.overlap = overlap;
+                    label.classList.remove(pos.class);
+                });
+                
+                // Find position with least overlap
+                let bestPosition = positions[0];
+                for (let i = 1; i < positions.length; i++) {
+                    if (positions[i].overlap < bestPosition.overlap) {
+                        bestPosition = positions[i];
+                    }
+                }
+                
+                // Apply best position
+                label.classList.add(bestPosition.class);
+            }
+            
+            // Make nodes draggable
+            function makeNodeDraggable(nodeEl) {
+                let offsetX, offsetY;
+                const contentWrapper = nodeEl.querySelector('.node-content-wrapper');
+                
+                contentWrapper.addEventListener('mousedown', (e) => {
+                    if (lockState === 'locked') return;
+                    
+                    nodeEl.classList.add('is-dragging');
+                    offsetX = e.clientX - nodeEl.offsetLeft;
+                    offsetY = e.clientY - nodeEl.offsetTop;
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', () => {
+                        nodeEl.classList.remove('is-dragging');
+                        document.removeEventListener('mousemove', onMouseMove);
+                        positionLabel(nodeEl);
+                        adjustContainerHeight();
+                    }, { once: true });
+                });
+                
+                function onMouseMove(e) {
+                    let newX = e.clientX - offsetX;
+                    let newY = e.clientY - offsetY;
+                    
+                    // Apply constraints in limited mode
+                    if (lockState === 'limited') {
+                        const parentNodes = allNodesData.filter(n => n.type === 'parent').sort((a,b) => a.y - b.y);
+                        const currentIndex = parentNodes.findIndex(p => p.id === nodeEl.id);
+                        
+                        if (currentIndex !== -1) {
+                            const prevNode = parentNodes[currentIndex - 1];
+                            const nextNode = parentNodes[currentIndex + 1];
+                            
+                            // Vertical constraints
+                            if (prevNode) newY = Math.max(newY, nodePositions[prevNode.id].y + 90);
+                            if (nextNode) newY = Math.min(newY, nodePositions[nextNode.id].y - 90);
+                            
+                            // Horizontal constraints
+                            const isRightLane = nodePositions[nodeEl.id].x > layoutConfig.centerX;
+                            if (isRightLane) { 
+                                newX = Math.max(newX, layoutConfig.centerX + 50); 
+                            } else { 
+                                newX = Math.min(newX, layoutConfig.centerX - 50); 
+                            }
+                        }
+                    }
+                    
+                    nodeEl.style.left = `${newX}px`;
+                    nodeEl.style.top = `${newY}px`;
+                    nodePositions[nodeEl.id] = { x: newX, y: newY };
+                    drawPaths(nodePositions);
+                }
+            }
+            
+            // Generate path data based on style
+            function generatePath(p1, p2, style) {
+                if (style === 'organic') {
+                    const cp1 = { x: p1.x, y: p1.y + (p2.y - p1.y) / 2 };
+                    const cp2 = { x: p2.x, y: p2.y - (p2.y - p1.y) / 2 };
+                    return `M ${p1.x} ${p1.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${p2.x} ${p2.y}`;
+                } else { // structured
+                    const mid_y = p1.y + (p2.y - p1.y) / 2;
+                    const x_direction = p2.x > p1.x ? 1 : -1;
+                    return `M ${p1.x} ${p1.y} L ${p1.x} ${mid_y - layoutConfig.cornerRadius} Q ${p1.x} ${mid_y}, ${p1.x + layoutConfig.cornerRadius * x_direction} ${mid_y} L ${p2.x - layoutConfig.cornerRadius * x_direction} ${mid_y} Q ${p2.x} ${mid_y}, ${p2.x} ${mid_y + layoutConfig.cornerRadius} L ${p2.x} ${p2.y}`;
+                }
+            }
+            
+            // Create gradient for bridge paths
+            function createBridgeGradient(section1Id, section2Id) {
+                const gradientId = `bridge-${section1Id}-${section2Id}`;
+                const existingGradient = document.querySelector(`#${gradientId}`);
+                
+                if (!existingGradient) {
+                    const section1Color = getSectionColor(section1Id);
+                    const section2Color = getSectionColor(section2Id);
+                    
+                    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                    gradient.id = gradientId;
+                    gradient.setAttribute('x1', '0%');
+                    gradient.setAttribute('y1', '0%');
+                    gradient.setAttribute('x2', '100%');
+                    gradient.setAttribute('y2', '100%');
+                    
+                    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                    stop1.setAttribute('offset', '0%');
+                    stop1.setAttribute('stop-color', section1Color);
+                    
+                    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                    stop2.setAttribute('offset', '100%');
+                    stop2.setAttribute('stop-color', section2Color);
+                    
+                    gradient.appendChild(stop1);
+                    gradient.appendChild(stop2);
+                    
+                    document.querySelector('defs').appendChild(gradient);
+                }
+                
+                return gradientId;
+            }
+            
+            // Draw all paths
+            function drawPaths(positions) {
+                let pathHTML = '';
+                
+                // Draw Main Paths
+                const parentNodes = allNodesData.filter(n => n.type === 'parent');
+                for (let i = 0; i < parentNodes.length - 1; i++) {
+                    const p1 = positions[parentNodes[i].id]; 
+                    const p2 = positions[parentNodes[i+1].id];
+                    
+                    // Get section color of starting node
+                    const sectionColor = getSectionColor(parentNodes[i].college);
+                    pathHTML += `<path class="visible-path" d="${generatePath(p1, p2, pathStyle)}" style="stroke: ${sectionColor}" />`;
+                }
+                
+                // Draw Secondary Paths
+                const childrenByParent = allNodesData.reduce((acc, node) => {
+                    if (node.type === 'secondary') { 
+                        if (!acc[node.parentId]) acc[node.parentId] = []; 
+                        acc[node.parentId].push(node); 
+                    } 
+                    return acc;
+                }, {});
+                
+                for (const parentId in childrenByParent) {
+                    const childNodes = childrenByParent[parentId]; 
+                    const p_parent = positions[parentId];
+                    
+                    childNodes.forEach(childNode => {
+                        const p_child = positions[childNode.id];
+                        const originXDirection = p_child.x < p_parent.x ? -1 : 1;
+                        const originX = p_parent.x + (45 * originXDirection);
+                        
+                        let pathData = '';
+                        if (pathStyle === 'organic') {
+                            pathData = `M ${originX} ${p_parent.y} C ${originX + (p_child.x - originX)/2} ${p_parent.y}, ${originX + (p_child.x - originX)/2} ${p_child.y}, ${p_child.x} ${p_child.y}`;
+                        } else { // structured
+                            const midpoint_x = p_child.x + (originX - p_child.x) / 2;
+                            pathData = `M ${p_child.x} ${p_child.y} C ${midpoint_x} ${p_child.y}, ${midpoint_x} ${p_parent.y}, ${originX} ${p_parent.y}`;
+                        }
+                        
+                        const sectionColor = getSectionColor(childNode.college);
+                        pathHTML += `<path class="secondary-path" d="${pathData}" style="stroke: ${sectionColor}" />`;
+                    });
+                }
+                
+                // Draw Bridge Paths between sections
+                const sections = {};
+                parentNodes.forEach(node => {
+                    if (!sections[node.college]) sections[node.college] = [];
+                    sections[node.college].push(node);
+                });
+                
+                const sectionIds = Array.from(new Set(parentNodes.map(n => n.college)));
+                for (let i = 0; i < sectionIds.length - 1; i++) {
+                    const prevSection = sectionIds[i];
+                    const nextSection = sectionIds[i+1];
+                    
+                    if (sections[prevSection] && sections[nextSection]) {
+                        const startNode = sections[prevSection][sections[prevSection].length - 1];
+                        const endNode = sections[nextSection][0];
+                        
+                        const p1 = positions[startNode.id];
+                        const p2 = positions[endNode.id];
+                        
+                        // Create gradient for bridge
+                        const gradientId = createBridgeGradient(prevSection, nextSection);
+                        
+                        // Draw bridge path
+                        const pathData = generatePath(p1, p2, pathStyle);
+                        pathHTML += `<path class="bridge-path" d="${pathData}" stroke="url(#${gradientId})" />`;
+                    }
+                }
+                
+                pathGroup.innerHTML = pathHTML;
+            }
+            
+            // Setup minimap
+            function setupMinimap() {
+                const minimapTrack = minimapContainer.querySelector('.minimap-track');
+                minimapTrack.innerHTML = '';
+                
+                // Create minimap sections
+                allSections.forEach((section, index) => {
+                    const sectionEl = document.createElement('div');
+                    sectionEl.className = 'minimap-section';
+                    sectionEl.dataset.sectionId = section.id;
+                    sectionEl.style.height = `${100 / allSections.length}%`;
+                    sectionEl.style.top = `${(100 / allSections.length) * index}%`;
+                    
+                    sectionEl.innerHTML = `
+                        <div class="minimap-section-label" style="color: ${section.color}">
+                            <i class="fas ${section.icon}"></i> ${section.title}
+                        </div>
+                    `;
+                    
+                    sectionEl.addEventListener('click', () => {
+                        scrollToSection(section.id);
+                    });
+                    
+                    minimapTrack.appendChild(sectionEl);
+                });
+                
+                // Set up scroll listener
+                window.addEventListener('scroll', updateMinimapHighlight);
+                updateMinimapHighlight();
+            }
+            
+            // Scroll to a section
+            function scrollToSection(sectionId) {
+                activeSectionId = sectionId;
+                updateMinimapUI();
+                
+                const sectionNode = document.querySelector(`.roadmap-node[data-college="${sectionId}"]`);
+                if (sectionNode) {
+                    isProgrammaticScroll = true;
+                    const y = sectionNode.offsetTop - 100;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                    
+                    setTimeout(() => {
+                        isProgrammaticScroll = false;
+                    }, 500);
+                }
+            }
+            
+            // Update minimap UI
+            function updateMinimapUI() {
+                document.querySelectorAll('.minimap-section').forEach(section => {
+                    section.classList.toggle('active', section.dataset.sectionId === activeSectionId);
+                });
+                updateSectionManager();
+            }
+            
+            // Update minimap highlight
+            function updateMinimapHighlight() {
+                if (isProgrammaticScroll) return;
+                
+                const scrollPosition = window.scrollY + window.innerHeight / 2;
+                let minDistance = Infinity;
+                let newActiveSection = activeSectionId;
+                
+                document.querySelectorAll('.roadmap-node').forEach(node => {
+                    if (node.dataset.college) {
+                        const rect = node.getBoundingClientRect();
+                        const distance = Math.abs(rect.top + rect.height/2 - scrollPosition);
+                        
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            newActiveSection = node.dataset.college;
+                        }
+                    }
+                });
+                
+                if (newActiveSection !== activeSectionId) {
+                    activeSectionId = newActiveSection;
+                    updateMinimapUI();
+                }
+            }
+            
+            // Update section manager UI
+            function updateSectionManager() {
+                sectionsList.innerHTML = '';
+                
+                allSections.forEach(section => {
+                    const sectionTag = document.createElement('div');
+                    sectionTag.className = `section-tag ${section.id === activeSectionId ? 'active' : ''}`;
+                    sectionTag.style.borderColor = section.color;
+                    sectionTag.style.color = section.id === activeSectionId ? '#10142a' : section.color;
+                    sectionTag.style.backgroundColor = section.id === activeSectionId ? section.color : 'rgba(16, 20, 42, 0.7)';
+                    
+                    sectionTag.innerHTML = `
+                        <i class="fas ${section.icon}"></i>
+                        ${section.title}
+                    `;
+                    
+                    sectionTag.addEventListener('click', () => {
+                        scrollToSection(section.id);
+                    });
+                    
+                    sectionsList.appendChild(sectionTag);
+                });
+            }
+            
+            // Adjust container height based on node positions
+            function adjustContainerHeight() {
+                let maxY = 0;
+                for (const id in nodePositions) {
+                    if (nodePositions[id].y > maxY) {
+                        maxY = nodePositions[id].y;
+                    }
+                }
+                
+                // Add 500px padding at the bottom
+                roadmapContainer.style.height = (maxY + 500) + 'px';
+                
+                // Update the SVG height as well
+                document.querySelector('.path-svg').style.height = (maxY + 500) + 'px';
+            }
+            
+            // Update UI based on state
+            function updateUIFromState() {
+                // Update Lock Button
+                const lockTextMap = { 
+                    locked: 'Locked', 
+                    limited: 'Limited', 
+                    free: 'Freeform' 
+                };
+                lockModeBtn.innerHTML = `<i class="fas fa-${lockState === 'locked' ? 'lock' : lockState === 'limited' ? 'lock-open' : 'unlock'}"></i> Mode: ${lockTextMap[lockState]}`;
+                
+                // Update Path Style Button
+                const styleTextMap = { 
+                    structured: 'Structured', 
+                    organic: 'Organic' 
+                };
+                pathStyleBtn.innerHTML = `<i class="fas fa-${pathStyle === 'structured' ? 'project-diagram' : 'bezier-curve'}"></i> Style: ${styleTextMap[pathStyle]}`;
+                
+                // Enforce rules
+                pathStyleBtn.disabled = (lockState === 'free');
+                
+                // Toggle drag cursor
+                document.body.classList.toggle('drag-enabled', lockState !== 'locked');
+            }
+            
+            // Get a random color that's different from recent sections
+            function getRandomColor() {
+                const recentColors = allSections.slice(-3).map(s => s.color);
+                const available = availableColors.filter(color => !recentColors.includes(color));
+                
+                if (available.length > 0) {
+                    return available[Math.floor(Math.random() * available.length)];
+                }
+                
+                return availableColors[Math.floor(Math.random() * availableColors.length)];
+            }
+            
+            // Add new section with branching
+            function addNewSection() {
+                if (!activeSectionId) {
+                    alert('Please select a section first');
+                    return;
+                }
+                
+                // Find nodes in active section
+                const sectionNodes = allNodesData.filter(node => 
+                    node.college === activeSectionId && node.type === 'parent'
+                );
+                
+                if (sectionNodes.length === 0) {
+                    alert('No nodes in this section to branch from');
+                    return;
+                }
+                
+                // Find last node in section
+                const lastNode = sectionNodes.reduce((last, node) => 
+                    (node.y > last.y) ? node : last, 
+                    {y: -Infinity}
+                );
+                
+                // Generate unique ID
+                const newSectionId = `section-${Date.now()}`;
+                
+                // Create new section with random color
+                const newSection = {
+                    id: newSectionId,
+                    title: 'New Branch',
+                    icon: 'fa-code-branch',
+                    color: getRandomColor()
+                };
+                
+                // Add to sections array
+                allSections.push(newSection);
+                
+                // Add to DOM
+                const sectionData = document.createElement('div');
+                sectionData.className = 'section-data';
+                sectionData.dataset.id = newSection.id;
+                sectionData.dataset.title = newSection.title;
+                sectionData.dataset.icon = newSection.icon;
+                sectionData.dataset.color = newSection.color;
+                document.getElementById('roadmap-data').appendChild(sectionData);
+                
+                // Add a default parent node for the new section
+                const newNodeId = `node-${Date.now()}`;
+                
+                // Position new node to the side of the last node
+                const lastNodePosition = nodePositions[lastNode.id];
+                const isRight = lastNodePosition.x > layoutConfig.centerX;
+                const newX = isRight ? lastNodePosition.x - 300 : lastNodePosition.x + 300;
+                
+                const newNode = {
+                    id: newNodeId,
+                    type: 'parent',
+                    college: newSection.id,
+                    title: 'New Milestone',
+                    icon: 'fa-star',
+                    y: lastNodePosition.y,
+                    duration: '1 Month'
+                };
+                
+                allNodesData.push(newNode);
+                
+                // Add to DOM
+                const nodeData = document.createElement('div');
+                nodeData.className = 'node-data';
+                nodeData.dataset.id = newNode.id;
+                nodeData.dataset.type = newNode.type;
+                nodeData.dataset.college = newNode.college;
+                nodeData.dataset.title = newNode.title;
+                nodeData.dataset.icon = newNode.icon;
+                nodeData.dataset.y = newNode.y;
+                nodeData.dataset.duration = newNode.duration;
+                document.getElementById('roadmap-data').appendChild(nodeData);
+                
+                // Reinitialize roadmap
+                initializeRoadmap();
+                
+                // Set as active section
+                activeSectionId = newSection.id;
+                updateSectionManager();
+                
+                // Scroll to the new node
+                setTimeout(() => {
+                    const newNodeEl = document.getElementById(newNodeId);
+                    if (newNodeEl) {
+                        const y = newNodeEl.offsetTop - 200;
+                        window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                }, 100);
+            }
+            
+            // Add new node to active section
+            function addNewNode() {
+                if (!activeSectionId) {
+                    alert('Please select a section first');
+                    return;
+                }
+                
+                // Find nodes in active section
+                const sectionNodes = allNodesData.filter(node => 
+                    node.college === activeSectionId && node.type === 'parent'
+                );
+                
+                if (sectionNodes.length === 0) {
+                    alert('No nodes in this section to add to');
+                    return;
+                }
+                
+                // Find last node in section
+                const lastNode = sectionNodes.reduce((last, node) => 
+                    (node.y > last.y) ? node : last, 
+                    {y: -Infinity}
+                );
+                
+                // Create new node
+                const newNodeId = `node-${Date.now()}`;
+                const sectionColor = getSectionColor(activeSectionId);
+                const newNode = {
+                    id: newNodeId,
+                    type: 'parent',
+                    college: activeSectionId,
+                    title: 'New Milestone',
+                    icon: 'fa-plus-circle',
+                    y: lastNode.y + 250,
+                    duration: '1 Month'
+                };
+                
+                allNodesData.push(newNode);
+                
+                // Add to DOM
+                const nodeData = document.createElement('div');
+                nodeData.className = 'node-data';
+                nodeData.dataset.id = newNode.id;
+                nodeData.dataset.type = newNode.type;
+                nodeData.dataset.college = newNode.college;
+                nodeData.dataset.title = newNode.title;
+                nodeData.dataset.icon = newNode.icon;
+                nodeData.dataset.y = newNode.y;
+                nodeData.dataset.duration = newNode.duration;
+                document.getElementById('roadmap-data').appendChild(nodeData);
+                
+                // Reinitialize roadmap
+                initializeRoadmap();
+                
+                // Scroll to the new node
+                setTimeout(() => {
+                    const newNodeEl = document.getElementById(newNodeId);
+                    if (newNodeEl) {
+                        const y = newNodeEl.offsetTop - 200;
+                        window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                }, 100);
+            }
+            
+            // Open node editor
+            function openNodeEditor(nodeId) {
+                if (!editorMode) return;
+                
+                const node = allNodesData.find(n => n.id === nodeId);
+                if (!node) return;
+                
+                editingNode = node;
+                nodeTitleInput.value = node.title;
+                nodeDurationInput.value = node.duration || '';
+                
+                // Select current icon
+                document.querySelectorAll('.icon-option').forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.dataset.icon === node.icon) {
+                        option.classList.add('selected');
+                    }
+                });
+                
+                nodeEditor.classList.add('visible');
+            }
+            
+            // Save node changes
+            function saveNodeChanges() {
+                if (!editingNode) return;
+                
+                editingNode.title = nodeTitleInput.value;
+                editingNode.duration = nodeDurationInput.value || null;
+                
+                // Get selected icon
+                const selectedIcon = document.querySelector('.icon-option.selected');
+                if (selectedIcon) {
+                    editingNode.icon = selectedIcon.dataset.icon;
+                }
+                
+                // Update DOM data
+                const nodeData = document.querySelector(`.node-data[data-id="${editingNode.id}"]`);
+                if (nodeData) {
+                    nodeData.dataset.title = editingNode.title;
+                    nodeData.dataset.icon = editingNode.icon;
+                    nodeData.dataset.duration = editingNode.duration || '';
+                }
+                
+                // Reinitialize roadmap
+                initializeRoadmap();
+                
+                nodeEditor.classList.remove('visible');
+            }
+            
+            // Save roadmap
+            function saveRoadmap() {
+                // In a real app, this would save to a database
+                // For now, we'll show a confirmation
+                alert('Roadmap saved successfully!');
+            }
+            
+            // Initialize roadmap
+            function initializeRoadmap() {
+                // Parse data
+                const data = parseNodesFromHTML();
+                allSections = data.sections;
+                allNodesData = data.nodes;
+                
+                if (!allNodesData.length) return;
+                
+                // Calculate and set positions
+                nodePositions = calculateInitialNodePositions();
+                
+                // Adjust container height
+                adjustContainerHeight();
+                
+                // Render nodes
+                renderNodes(nodePositions);
+                
+                // Draw paths
+                drawPaths(nodePositions);
+                
+                // Setup minimap
+                setupMinimap();
+                
+                // Update UI
+                updateUIFromState();
+                updateSectionManager();
+            }
+            
+            // Event Listeners
+            editToggleBtn.addEventListener('click', () => {
+                editToggleBtn.classList.toggle('active');
+                editOptionsPanel.classList.toggle('hidden');
+            });
+            
+            editorToggleBtn.addEventListener('click', () => {
+                editorMode = !editorMode;
+                editorToggleBtn.classList.toggle('active', editorMode);
+                sectionManager.classList.toggle('visible', editorMode);
+            });
+            
+            lockModeBtn.addEventListener('click', () => {
+                const states = ['locked', 'limited', 'free'];
+                const currentIndex = states.indexOf(lockState);
+                lockState = states[(currentIndex + 1) % states.length];
+                
+                // If mode is set to 'free', path must be 'organic'
+                if (lockState === 'free') {
+                    pathStyle = 'organic';
+                } else if (pathStyle === 'organic') { 
+                    // If leaving free, reset to structured
+                    pathStyle = 'structured';
+                }
+                
+                updateUIFromState();
+                drawPaths(nodePositions);
+            });
+            
+            pathStyleBtn.addEventListener('click', () => {
+                if (pathStyleBtn.disabled) return;
+                pathStyle = (pathStyle === 'structured') ? 'organic' : 'structured';
+                updateUIFromState();
+                drawPaths(nodePositions);
+            });
+            
+            addSectionBtn.addEventListener('click', addNewSection);
+            addNodeBtn.addEventListener('click', addNewNode);
+            saveRoadmapBtn.addEventListener('click', saveRoadmap);
+            
+            minimapToggle.addEventListener('click', () => {
+                minimapContainer.classList.toggle('hidden');
+            });
+            
+            infoButton.addEventListener('click', () => {
+                infoModal.style.display = 'block';
+            });
+            
+            closeModal.addEventListener('click', () => {
+                infoModal.style.display = 'none';
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === infoModal) {
+                    infoModal.style.display = 'none';
+                }
+            });
+            
+            // Icon selection
+            document.querySelectorAll('.icon-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    document.querySelectorAll('.icon-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    option.classList.add('selected');
+                });
+            });
+            
+            saveNodeBtn.addEventListener('click', saveNodeChanges);
+            cancelEditBtn.addEventListener('click', () => {
+                nodeEditor.classList.remove('visible');
+            });
+            
+            // Initialize
+            initializeRoadmap();
+        });
+    </script>
+</body>
+</html>

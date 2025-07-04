@@ -1,0 +1,598 @@
+/* ==========================================================================
+   1. Root Variables & Global Styles
+   ========================================================================== */
+/**
+ * Defines the global color palette, animation properties, and default
+ * styling for the entire application.
+ */
+:root {
+    --color-bg-dark: #10142a;
+    --color-bg-medium: #22284b;
+    --color-accent-mint: #25d0a9;
+    --color-accent-gold: #FFAA00;
+    --color-accent-purple: #a55bf7;
+    --color-accent-blue: #5b8cff;
+    --color-accent-pink: #ff6b9c;
+    --color-accent-teal: #2dd4bf;
+    --color-inactive-blue: #2a3a6d;
+    --color-text: #e0e0e0;
+    --color-text-muted: #8a93c4;
+    --path-stroke-width: 7px;
+    --selection-glow: 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+body { 
+    background-color: var(--color-bg-dark); 
+    color: var(--color-text); 
+    padding: 20px; 
+    overflow-x: hidden; 
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ==========================================================================
+   2. Keyframe Animations
+   ========================================================================== */
+@keyframes draw-path { to { stroke-dashoffset: 0; } }
+@keyframes node-enter { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes particle-float { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+@keyframes pulse-glow { 0% { box-shadow: 0 0 5px currentColor; } 100% { box-shadow: 0 0 25px currentColor, 0 0 40px currentColor; } }
+@keyframes path-glow { 0% { filter: drop-shadow(0 0 3px currentColor); } 100% { filter: drop-shadow(0 0 10px currentColor); } }
+@keyframes orbit { 0% { transform: translate(-50%, -50%) rotate(0deg) translateX(100px) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg) translateX(100px) rotate(-360deg); } }
+
+/* ==========================================================================
+   3. Main Layout & Header
+   ========================================================================== */
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    width: 100%;
+}
+header { 
+    text-align: center; 
+    padding: 20px; 
+    width: 100%;
+    position: relative;
+}
+h1.plaque { 
+    background-color: var(--color-bg-medium); 
+    padding: 15px 30px; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+    border: 1px solid #3a416f; 
+    display: inline-block; 
+    margin-bottom: 20px; 
+    font-size: 2.5rem;
+    color: var(--color-accent-mint);
+}
+footer {
+    margin-top: 50px;
+    text-align: center;
+    padding: 20px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    width: 100%;
+}
+
+/* ==========================================================================
+   4. Editor Controls
+   ========================================================================== */
+#edit-controls-container { 
+    position: fixed; 
+    top: 20px; 
+    left: 20px; 
+    z-index: 101; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+}
+.control-button { 
+    background-color: var(--color-bg-medium); 
+    color: var(--color-text); 
+    border: 1px solid #3a416f; 
+    border-radius: 25px; 
+    padding: 10px 15px; 
+    cursor: pointer; 
+    transition: all 0.3s ease; 
+    font-weight: 600; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3); 
+    gap: 8px;
+}
+.control-button:hover { 
+    background-color: #3a416f; 
+    border-color: #5b65a5; 
+}
+#edit-toggle.active, .editor-mode.active { 
+    background-color: var(--color-accent-mint); 
+    color: var(--color-bg-dark); 
+}
+#edit-options { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    transition: all 0.3s ease; 
+    background: rgba(16, 20, 42, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 15px;
+    border-radius: 20px;
+    border: 1px solid #3a416f;
+}
+#edit-options.hidden { 
+    opacity: 0; 
+    pointer-events: none; 
+    transform: translateY(-10px); 
+}
+.option-button { 
+    width: 160px; 
+    text-align: center; 
+    font-size: 0.95rem; 
+    justify-content: flex-start;
+}
+.option-button:disabled { 
+    opacity: 0.5; 
+    cursor: not-allowed; 
+    background-color: var(--color-bg-medium); 
+}
+
+/* ==========================================================================
+   5. Roadmap Container & SVG Paths
+   ========================================================================== */
+.roadmap-container { 
+    position: relative; 
+    width: 100%;
+    min-height: 100vh;
+    margin: 40px auto;
+}
+.path-svg { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    z-index: 1; 
+    overflow: visible; 
+}
+.visible-path, .secondary-path, .bridge-path { 
+    fill: none; 
+    stroke-linecap: round; 
+    stroke-linejoin: round; 
+    transition: stroke 0.5s ease; 
+}
+.visible-path { 
+    stroke-width: var(--path-stroke-width); 
+    stroke: #3fb950;
+}
+.secondary-path { 
+    stroke-width: 4px; 
+    stroke: #5b8cff;
+    stroke-dasharray: 2, 8; 
+}
+.bridge-path {
+    stroke-width: 8px;
+    stroke: #a371f7;
+}
+.tie-path {
+    stroke-width: 4px;
+    stroke: #f85149;
+}
+.path-highlight {
+    animation: path-glow 1s infinite alternate;
+    stroke-width: calc(var(--path-stroke-width) + 2px);
+}
+#node-container { 
+    position: absolute; 
+    width: 100%; 
+    height: 100%; 
+    z-index: 10; 
+    pointer-events: none; 
+}
+
+/* ==========================================================================
+   6. Roadmap Nodes
+   ========================================================================== */
+.roadmap-node { 
+    position: absolute; 
+    opacity: 0; 
+    transform: translate(-50%, -50%); 
+    animation: node-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+    pointer-events: auto; 
+    z-index: 20;
+}
+.roadmap-node.is-dragging { 
+    z-index: 999; 
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4)); 
+}
+.drag-enabled .node-content-wrapper { 
+    cursor: grab; 
+}
+.drag-enabled .node-content-wrapper:active { 
+    cursor: grabbing; 
+}
+.roadmap-node.inactive .parent-node, .roadmap-node.inactive .secondary-node { 
+    background-color: var(--color-inactive-blue); 
+}
+.roadmap-node.selected .parent-node, .roadmap-node.selected .secondary-node {
+    animation: pulse-glow 1.5s infinite alternate;
+    border: 3px solid white;
+}
+.parent-node, .secondary-node { 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    color: var(--color-bg-dark); 
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5); 
+    transition: all 0.3s ease; 
+    position: relative;
+}
+.parent-node { 
+    width: 90px; 
+    height: 90px; 
+    border: 4px solid var(--color-bg-dark); 
+    font-size: 2.2rem; 
+}
+.secondary-node { 
+    width: 65px; 
+    height: 65px; 
+    font-size: 1.6rem; 
+}
+.node-content-wrapper:hover .parent-node, .node-content-wrapper:hover .secondary-node { 
+    transform: scale(1.1); 
+    border-color: #fff; 
+    box-shadow: 0 0 35px rgba(255, 255, 255, 0.3); 
+}
+.fas { 
+    transition: filter 0.3s ease, color 0.3s ease; 
+}
+.node-content-wrapper:hover .fas { 
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8)); 
+    color: #fff; 
+}
+
+/* Node Labels */
+.node-label { 
+    position: absolute; 
+    padding: 12px 20px; 
+    font-weight: 600; 
+    white-space: nowrap; 
+    color: var(--color-text); 
+    transition: all 0.3s ease; 
+    background-color: var(--color-bg-medium); 
+    border: 1px solid transparent; 
+    border-radius: 10px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+    z-index: 5;
+    font-size: 1.1rem;
+}
+.duration-text { 
+    display: block; 
+    font-weight: 400; 
+    font-size: 0.9rem; 
+    transition: all 0.3s ease; 
+    max-height: 0; 
+    opacity: 0; 
+    overflow: hidden; 
+    margin-top: 0; 
+}
+.label-pos-right { left: 140%; top: 50%; transform: translateY(-50%); text-align: left; }
+.label-pos-left { right: 140%; top: 50%; transform: translateY(-50%); text-align: right; }
+.label-pos-bottom { top: 140%; left: 50%; transform: translateX(-50%); }
+.label-pos-top { bottom: 140%; left: 50%; transform: translateX(-50%); }
+
+.node-content-wrapper:hover .node-label { 
+    color: #fff; 
+    text-shadow: 0 0 5px rgba(255,255,255,0.4); 
+    padding-bottom: 16px; 
+}
+.node-content-wrapper:hover .parent-label { border-color: #fff; }
+.node-content-wrapper:hover .duration-text { max-height: 20px; opacity: 1; margin-top: 8px; }
+
+/* ==========================================================================
+   7. Special Components (End Node, Anchor, Particles)
+   ========================================================================== */
+.end-node .parent-node {
+    position: relative;
+    border: 3px solid var(--color-text);
+    box-shadow: 0 0 0 4px currentColor;
+}
+.end-node:hover .parent-node {
+    animation: pulse-glow 1.5s infinite alternate;
+}
+.end-node:hover .particles { display: block; }
+.particles {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    pointer-events: none;
+}
+.particle {
+    position: absolute;
+    background: currentColor;
+    border-radius: 50%;
+    animation: particle-float 1.5s ease-out forwards;
+}
+.anchor-node {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 15;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    pointer-events: auto;
+}
+.anchor-node.selected {
+    animation: pulse-glow 1s infinite alternate;
+    box-shadow: 0 0 15px #ffffff, 0 0 25px rgba(255, 255, 255, 0.8);
+}
+.orbit-container {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 14;
+    pointer-events: none;
+}
+.orbit-path {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* ==========================================================================
+   8. Minimap
+   ========================================================================== */
+#minimap-container { 
+    position: fixed; 
+    top: 50%; 
+    right: 25px; 
+    transform: translateY(-50%); 
+    width: 160px; 
+    height: 450px; 
+    background-color: rgba(16, 20, 42, 0.8); 
+    border: 1px solid #3a416f; 
+    border-radius: 10px; 
+    z-index: 99; 
+    backdrop-filter: blur(5px); 
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4); 
+    transition: transform 0.4s ease-in-out; 
+}
+#minimap-container.hidden { 
+    transform: translateY(-50%) translateX(calc(100% + 70px)); 
+}
+.minimap-track { 
+    position: relative; 
+    width: 100%; 
+    height: 100%; 
+    overflow: hidden; 
+    border-radius: 9px; 
+}
+.minimap-section { 
+    position: absolute; 
+    width: 100%; 
+    transition: opacity 0.5s ease; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.minimap-section:last-child { border-bottom: none; }
+.minimap-section:not(.active) { opacity: 0.5; }
+.minimap-section:hover:not(.active) { opacity: 0.8; }
+.minimap-section.active { background: rgba(58, 65, 111, 0.4); opacity: 1; }
+.minimap-section-label { 
+    padding: 12px; 
+    border-radius: 8px; 
+    font-weight: 600; 
+    color: #fff; 
+    text-align: center;
+    width: 100%;
+}
+.minimap-section-label .fas { margin-right: 8px; font-size: 1.2rem; }
+.minimap-thumb { 
+    position: absolute; 
+    left: 2px; 
+    right: 2px; 
+    width: auto; 
+    border-radius: 8px; 
+    cursor: grab; 
+    background: rgba(255,255,255,0.2); 
+    border: 1px solid rgba(255,255,255,0.4); 
+    transition: top 0.1s linear, height 0.1s linear; 
+    z-index: 10; 
+}
+#minimap-toggle { 
+    position: fixed; 
+    top: 50%; 
+    right: 195px; 
+    transform: translateY(-50%); 
+    width: 40px; 
+    height: 40px; 
+    background-color: var(--color-bg-medium); 
+    border: 1px solid #3a416f; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    z-index: 100; 
+    transition: transform 0.4s ease-in-out, right 0.4s ease-in-out; 
+}
+#minimap-container.hidden + #minimap-toggle { right: 25px; }
+#minimap-toggle .fas { transition: transform 0.4s ease; }
+#minimap-container.hidden + #minimap-toggle .fas { transform: rotate(180deg); }
+
+/* ==========================================================================
+   9. Floating Panels & Modals (Branch Manager, Info, Editor, Log)
+   ========================================================================== */
+#branch-manager {
+    background: var(--color-bg-medium);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 800px;
+    border: 1px solid #3a416f;
+    display: none;
+}
+#branch-manager.visible { display: block; }
+#branch-manager h3 { color: var(--color-accent-mint); margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+#branches-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.branch-tag {
+    background: rgba(16, 20, 42, 0.7);
+    border: 1px solid #3a416f;
+    border-radius: 20px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.branch-tag:hover { background: rgba(58, 65, 111, 0.7); }
+.branch-tag.active { background: var(--color-accent-mint); color: var(--color-bg-dark); }
+#info-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    background: var(--color-bg-medium);
+    border: 1px solid #3a416f;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+    overflow: auto;
+    padding: 20px;
+}
+.modal-content {
+    background: var(--color-bg-medium);
+    border-radius: 20px;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    position: relative;
+    border: 1px solid #3a416f;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.close-modal { position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--color-text); font-size: 1.5rem; cursor: pointer; }
+.modal h2 { color: var(--color-accent-mint); margin-bottom: 20px; text-align: center; }
+.modal h3 { color: var(--color-accent-gold); margin: 25px 0 15px; display: flex; align-items: center; gap: 10px; }
+.modal h3 i { width: 30px; }
+.modal ul { padding-left: 20px; margin-bottom: 20px; }
+.modal li { margin-bottom: 10px; line-height: 1.6; }
+.modal p { margin-bottom: 15px; line-height: 1.6; }
+#node-editor {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--color-bg-medium);
+    border-radius: 15px;
+    padding: 25px;
+    z-index: 1000;
+    border: 1px solid #3a416f;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: none;
+    width: 350px;
+}
+#node-editor.visible { display: block; }
+#node-editor h3 { color: var(--color-accent-mint); margin-bottom: 20px; text-align: center; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+.form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 8px; background: var(--color-bg-dark); border: 1px solid #3a416f; color: var(--color-text); }
+.icon-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+.icon-option { display: flex; align-items: center; justify-content: center; background: var(--color-bg-dark); border: 1px solid #3a416f; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.3s ease; }
+.icon-option:hover, .icon-option.selected { background: var(--color-accent-mint); color: var(--color-bg-dark); }
+.form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
+.btn-primary { background: var(--color-accent-mint); color: var(--color-bg-dark); }
+.btn-secondary { background: var(--color-bg-dark); color: var(--color-text); border: 1px solid #3a416f; }
+.btn:hover { opacity: 0.9; transform: translateY(-2px); }
+#event-log {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(16, 20, 42, 0.9);
+    border: 1px solid #3a416f;
+    border-radius: 10px;
+    padding: 15px;
+    z-index: 100;
+    font-size: 0.85rem;
+    display: none;
+}
+#event-log.visible { display: block; }
+#event-log h4 { color: var(--color-accent-mint); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.log-entry { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.log-entry:last-child { border-bottom: none; }
+.log-timestamp { color: var(--color-text-muted); font-size: 0.75rem; }
+.log-error { color: #ff6b9c; }
+
+/* ==========================================================================
+   10. Responsive Design
+   ========================================================================== */
+@media (max-width: 1000px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 768px) {
+    #minimap-container, #minimap-toggle {
+        display: none;
+    }
+    #edit-controls-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        bottom: 20px;
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        gap: 5px;
+    }
+    .control-button { padding: 8px 12px; font-size: 0.9rem; }
+    .option-button { width: auto; }
+    #edit-options { flex-direction: row; max-width: 90vw; }
+    #event-log { width: calc(100% - 40px); left: 20px; right: 20px; }
+}

@@ -1,0 +1,2 @@
+/* Import the base styles for every theme */
+@import './themes/_dark-ocean.css';

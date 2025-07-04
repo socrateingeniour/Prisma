@@ -1,0 +1,31 @@
+{
+  "columns": [
+    "id",
+    "name",
+    "rank",
+    "heritage_identity_md", 
+    "global_positioning_md",
+    "academic_ecosystem_md",
+    "gateway_info_md"
+  ],
+  "records": [
+    [
+      "ucla", 
+      "University of California, Los Angeles", 
+      3, 
+      "Established in 1919, UCLA's soul is defined by its public service mission...", 
+      "Ranked #1 among US public universities...", 
+      "The engineering department is a powerhouse, especially in AI research. Notable faculty...",
+      "Visa success for Tunisian students is approximately 85%..."
+    ],
+    [
+      "stanford",
+      "Stanford University",
+      2,
+      "Founded by Leland Stanford in 1885, its spirit is entrepreneurial...",
+      "A global leader in technology and innovation...",
+      "The Computer Science department is legendary...",
+      "Visa success for Tunisian students is approximately 90%..."
+    ]
+  ]
+}

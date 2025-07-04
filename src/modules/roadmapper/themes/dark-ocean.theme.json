@@ -1,0 +1,31 @@
+{
+  "name": "Dark Ocean",
+  "cssFile": "_dark-ocean.css",
+  "effects": {
+    "particles": true,
+    "glow": true
+  },
+  "icons": {
+    "set": "font-awesome",
+    "map": {
+      "edit": "fas fa-pencil-alt",
+      "info": "fas fa-info",
+      "branchDefault": "fas fa-layer-group",
+      "nodeDefault": "fas fa-circle",
+      "zoomIn": "fas fa-search-plus",
+      "zoomOut": "fas fa-search-minus",
+      "toggleScrollZoom": "fas fa-arrows-alt-v",
+      "toggleScrollPan": "fas fa-mouse",
+      "minimap": "fas fa-map-marked-alt",
+      "locked": "fas fa-lock",
+      "limited": "fas fa-lock-open",
+      "free": "fas fa-unlock",
+      "structured": "fas fa-sitemap",
+      "organic": "fas fa-bezier-curve"
+    }
+  },
+  "fonts": {
+    "body": "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    "header": "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+  }
+}

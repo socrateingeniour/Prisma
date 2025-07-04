@@ -1,0 +1,15 @@
+:root {
+    --color-bg-dark: #10142a;
+    --color-bg-medium: #22284b;
+    --color-accent-mint: #25d0a9;
+    --color-accent-gold: #FFAA00;
+    --color-accent-purple: #a55bf7;
+    --color-accent-blue: #5b8cff;
+    --color-accent-pink: #ff6b9c;
+    --color-accent-teal: #2dd4bf;
+    --color-inactive-blue: #2a3a6d;
+    --color-text: #e0e0e0;
+    --color-text-muted: #8a93c4;
+    --path-stroke-width: 7px;
+    --selection-glow: 0 0 20px rgba(255, 255, 255, 0.8);
+}

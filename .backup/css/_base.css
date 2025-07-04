@@ -1,0 +1,126 @@
+/* ==========================================================================
+   1. Root Variables & Global Styles
+   ========================================================================== */
+/**
+ * Defines the global color palette, animation properties, and default
+ * styling for the entire application.
+ */
+:root {
+    --color-bg-dark: #10142a;
+    --color-bg-medium: #22284b;
+    --color-accent-mint: #25d0a9;
+    --color-accent-gold: #FFAA00;
+    --color-accent-purple: #a55bf7;
+    --color-accent-blue: #5b8cff;
+    --color-accent-pink: #ff6b9c;
+    --color-accent-teal: #2dd4bf;
+    --color-inactive-blue: #2a3a6d;
+    --color-text: #e0e0e0;
+    --color-text-muted: #8a93c4;
+    --path-stroke-width: 7px;
+    --selection-glow: 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+body { 
+    background-color: var(--color-bg-dark); 
+    color: var(--color-text); 
+    padding: 20px; 
+    overflow-x: hidden; 
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ==========================================================================
+   2. Keyframe Animations
+   ========================================================================== */
+@keyframes draw-path { to { stroke-dashoffset: 0; } }
+@keyframes node-enter { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes particle-float { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+@keyframes pulse-glow { 0% { box-shadow: 0 0 5px currentColor; } 100% { box-shadow: 0 0 25px currentColor, 0 0 40px currentColor; } }
+@keyframes path-glow { 0% { filter: drop-shadow(0 0 3px currentColor); } 100% { filter: drop-shadow(0 0 10px currentColor); } }
+@keyframes orbit { 0% { transform: translate(-50%, -50%) rotate(0deg) translateX(100px) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg) translateX(100px) rotate(-360deg); } }
+
+/* ==========================================================================
+   3. Main Layout & Header
+   ========================================================================== */
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    width: 100%;
+}
+header { 
+    text-align: center; 
+    padding: 20px; 
+    width: 100%;
+    position: relative;
+}
+h1.plaque { 
+    background-color: var(--color-bg-medium); 
+    padding: 15px 30px; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+    border: 1px solid #3a416f; 
+    display: inline-block; 
+    margin-bottom: 20px; 
+    font-size: 2.5rem;
+    color: var(--color-accent-mint);
+}
+footer {
+    margin-top: 50px;
+    text-align: center;
+    padding: 20px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    width: 100%;
+}
+
+/* ==========================================================================
+   10. Responsive Design
+   ========================================================================== */
+@media (max-width: 1000px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 768px) {
+    #minimap-container, #minimap-toggle {
+        display: none;
+    }
+    #edit-controls-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        bottom: 20px;
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        gap: 5px;
+    }
+    .control-button { padding: 8px 12px; font-size: 0.9rem; }
+    .option-button { width: auto; }
+    #edit-options { flex-direction: row; max-width: 90vw; }
+    #event-log { width: calc(100% - 40px); left: 20px; right: 20px; }
+}
+
+/* ==========================================================================
+   11. Utility Classes
+   ========================================================================== */
+.hidden { display: none !important; }
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}

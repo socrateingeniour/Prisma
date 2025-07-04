@@ -1,0 +1,7 @@
+{
+  "columns": ["id", "title", "description_md", "credits"],
+  "records": [
+    ["cs101", "Intro to Computer Science", "A foundational course covering core concepts...", 3],
+    ["math203", "Calculus II", "This course builds upon Calculus I with a focus on...", 4]
+  ]
+}

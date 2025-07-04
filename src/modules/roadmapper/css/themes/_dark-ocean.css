@@ -1,0 +1,28 @@
+[data-theme='dark-ocean'] {
+  /* ====== Palette ====== */
+  --color-background-primary: #10142a;
+  --color-background-secondary: #22284b;
+  --color-text-primary: #e0e0e0;
+  --color-text-muted: #8a93c4;
+  --color-accent-primary: #25d0a9;
+  --color-accent-secondary: #FFAA00;
+
+  /* ====== Branch Colors ====== */
+  --color-branch-1: #a55bf7;
+  --color-branch-2: #5b8cff;
+  --color-branch-3: #ff6b9c;
+  --color-branch-4: #2dd4bf;
+  
+  /* ====== Fonts ====== */
+  --font-family-body: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-family-header: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* ====== Paths ====== */
+  --path-stroke-width-main: 7px;
+  --path-stroke-width-secondary: 4px;
+  --path-stroke-width-bridge: 8px;
+
+  /* ====== Effects ====== */
+  --animation-glow-pulse: pulse-glow 1.5s infinite alternate;
+  --animation-glow-path: path-glow 1s infinite alternate;
+}

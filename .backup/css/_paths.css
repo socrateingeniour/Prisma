@@ -1,0 +1,27 @@
+.visible-path, .secondary-path, .bridge-path { 
+    fill: none; 
+    stroke-linecap: round; 
+    stroke-linejoin: round; 
+    transition: stroke 0.5s ease; 
+}
+.visible-path { 
+    stroke-width: var(--path-stroke-width); 
+    stroke: #3fb950;
+}
+.secondary-path { 
+    stroke-width: 4px; 
+    stroke: #5b8cff;
+    stroke-dasharray: 2, 8; 
+}
+.bridge-path {
+    stroke-width: 8px;
+    stroke: #a371f7;
+}
+.tie-path {
+    stroke-width: 4px;
+    stroke: #f85149;
+}
+.path-highlight {
+    animation: path-glow 1s infinite alternate;
+    stroke-width: calc(var(--path-stroke-width) + 2px);
+}

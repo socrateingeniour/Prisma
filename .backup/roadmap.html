@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Roadmap Generator</title>
+    <!-- External Font Awesome library for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Link to the external stylesheet -->
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <!-- Edit Mode controls -->
+    <div id="edit-controls-container">
+        <button id="edit-toggle" class="control-button"><i class="fas fa-pencil-alt"></i> Editor</button>
+        
+        <div id="edit-options" class="hidden">
+            <button id="editor-toggle" class="control-button option-button editor-mode">
+                <i class="fas fa-edit"></i> Editor Mode: OFF
+            </button>
+            <button id="lock-mode-toggle" class="control-button option-button">
+                <i class="fas fa-lock"></i> Lock: Locked
+            </button>
+            <button id="path-style-toggle" class="control-button option-button">
+                <i class="fas fa-project-diagram"></i> Style: Structured
+            </button>
+            <button id="add-branch" class="control-button option-button">
+                <i class="fas fa-plus"></i> Add Branch
+            </button>
+            <button id="add-node" class="control-button option-button">
+                <i class="fas fa-circle"></i> Add Node
+            </button>
+            <button id="save-roadmap" class="control-button option-button">
+                <i class="fas fa-save"></i> Save Roadmap
+            </button>
+        </div>
+    </div>
+    
+    <!-- Info button to show documentation modal -->
+    <div id="info-button" title="App Information">
+        <i class="fas fa-info"></i>
+    </div>
+
+    <!-- Main page container -->
+    <div class="container">
+        <header>
+            <h1 class="plaque">Enhanced Roadmap Generator</h1>
+        </header>
+
+        <!-- Main canvas for the roadmap visualization -->
+        <div class="roadmap-container" id="roadmap-container">
+            <!-- SVG container for drawing connection paths -->
+            <svg class="path-svg">
+                <defs>
+                    <!-- Default gradient (can be reused) -->
+                    <linearGradient id="path-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop id="grad-stop-1" offset="0%" />
+                        <stop id="grad-stop-2" offset="100%" />
+                    </linearGradient>
+                    
+                    <!-- Pre-defined bridge gradients -->
+                    <linearGradient id="bridge-indie-aaa" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#25d0a9" />
+                        <stop offset="100%" stop-color="#FFAA00" />
+                    </linearGradient>
+                    <linearGradient id="bridge-aaa-design" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#FFAA00" />
+                        <stop offset="100%" stop-color="#a55bf7" />
+                    </linearGradient>
+                    <linearGradient id="bridge-design-marketing" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#a55bf7" />
+                        <stop offset="100%" stop-color="#5b8cff" />
+                    </linearGradient>
+                </defs>
+                <!-- Group element where paths will be dynamically inserted -->
+                <g id="path-group"></g>
+            </svg>
+            <!-- Container for DOM-based nodes -->
+            <div id="node-container"></div>
+        </div>
+    </div>
+    
+    <!-- Minimap for quick navigation -->
+    <div id="minimap-container">
+        <div class="minimap-track"></div>
+    </div>
+    <div id="minimap-toggle"><i class="fas fa-chevron-right"></i></div>
+    
+    <!-- Hidden Data Island for initial roadmap structure -->
+    <div id="roadmap-data" style="display: none;">
+        <!-- Branches -->
+        <div class="branch-data" data-id="indie" data-title="Indie Focus" data-icon="fa-gamepad" data-color="#25d0a9"></div>
+        <div class="branch-data" data-id="aaa" data-title="AAA Focus" data-icon="fa-building" data-color="#FFAA00"></div>
+        <div class="branch-data" data-id="design" data-title="Design Phase" data-icon="fa-pencil-ruler" data-color="#a55bf7"></div>
+        <div class="branch-data" data-id="marketing" data-title="Marketing" data-icon="fa-bullhorn" data-color="#5b8cff"></div>
+        
+        <!-- Nodes -->
+        <div class="node-data" data-id="concept" data-type="parent" data-branch="indie" data-title="Concept" data-icon="fa-lightbulb" data-y="100" data-duration="1-2 Weeks"></div>
+        <div class="node-data" data-id="prototype" data-type="parent" data-branch="indie" data-title="Prototype" data-icon="fa-puzzle-piece" data-y="375" data-duration="4-6 Weeks"></div>
+        <div class="node-data" data-id="alpha" data-type="parent" data-branch="indie" data-title="Alpha" data-icon="fa-vial" data-y="650" data-duration="3 Months"></div>
+        
+        <div class="node-data" data-id="beta" data-type="parent" data-branch="aaa" data-title="Beta" data-icon="fa-users" data-y="925" data-duration="6 Months"></div>
+        <div class="node-data" data-id="release" data-type="parent" data-branch="aaa" data-title="Release" data-icon="fa-rocket" data-y="1200" data-duration="1 Month"></div>
+        <div class="node-data" data-id="post-launch" data-type="parent" data-branch="aaa" data-title="Post-Launch" data-icon="fa-sync-alt" data-y="1475" data-duration="Ongoing"></div>
+        
+        <div class="node-data" data-id="design-phase" data-type="parent" data-branch="design" data-title="Design Phase" data-icon="fa-drafting-compass" data-y="1750" data-duration="2-3 Months"></div>
+        <div class="node-data" data-id="market-research" data-type="parent" data-branch="marketing" data-title="Market Research" data-icon="fa-chart-line" data-y="2000" data-duration="1 Month"></div>
+        
+        <!-- Secondary nodes -->
+        <div class="node-data" data-id="skill-gdd" data-type="secondary" data-branch="indie" data-title="Game Design Doc" data-icon="fa-file-alt" data-parent-id="concept" data-offset-x="350"></div>
+        <div class="node-data" data-id="skill-physics" data-type="secondary" data-branch="indie" data-title="Physics System" data-icon="fa-atom" data-parent-id="prototype" data-offset-x="350"></div>
+        <div class="node-data" data-id="skill-art" data-type="secondary" data-branch="indie" data-title="Art Assets" data-icon="fa-palette" data-parent-id="prototype" data-offset-x="350" data-offset-y="-100"></div>
+        <div class="node-data" data-id="skill-qa" data-type="secondary" data-branch="indie" data-title="QA Testing" data-icon="fa-clipboard-check" data-parent-id="alpha" data-offset-x="350"></div>
+        
+        <div class="node-data" data-id="skill-optimization" data-type="secondary" data-branch="aaa" data-title="Optimization" data-icon="fa-tachometer-alt" data-parent-id="beta" data-offset-x="-350"></div>
+        <div class="node-data" data-id="skill-localization" data-type="secondary" data-branch="aaa" data-title="Localization" data-icon="fa-globe" data-parent-id="release" data-offset-x="-350"></div>
+        
+        <div class="node-data" data-id="skill-ui" data-type="secondary" data-branch="design" data-title="UI/UX Design" data-icon="fa-object-group" data-parent-id="design-phase" data-offset-x="350"></div>
+        <div class="node-data" data-id="skill-story" data-type="secondary" data-branch="design" data-title="Story Design" data-icon="fa-book" data-parent-id="design-phase" data-offset-x="350" data-offset-y="-100"></div>
+    </div>
+    
+    <!-- Branch Manager Panel -->
+    <div id="branch-manager">
+        <h3><i class="fas fa-layer-group"></i> Active Branch</h3>
+        <div id="branches-list"></div>
+    </div>
+    
+    <!-- Page Footer -->
+    <footer>
+        <p>Enhanced Roadmap Generator • Created with HTML, CSS & JavaScript</p>
+        <p>Double-click paths to select • Add nodes and branches contextually</p>
+    </footer>
+    
+    <!-- Node Editor Modal -->
+    <div id="node-editor">
+        <h3>Edit Node</h3>
+        <div class="form-group">
+            <label for="node-title">Title:</label>
+            <input type="text" id="node-title" placeholder="Node title">
+        </div>
+        <div class="form-group">
+            <label for="node-duration">Duration:</label>
+            <input type="text" id="node-duration" placeholder="Duration (optional)">
+        </div>
+        <div class="form-group">
+            <label>Icon:</label>
+            <div class="icon-options">
+                <div class="icon-option" data-icon="fa-lightbulb"><i class="fas fa-lightbulb"></i></div>
+                <div class="icon-option" data-icon="fa-puzzle-piece"><i class="fas fa-puzzle-piece"></i></div>
+                <div class="icon-option" data-icon="fa-vial"><i class="fas fa-vial"></i></div>
+                <div class="icon-option" data-icon="fa-users"><i class="fas fa-users"></i></div>
+                <div class="icon-option" data-icon="fa-rocket"><i class="fas fa-rocket"></i></div>
+                <div class="icon-option" data-icon="fa-sync-alt"><i class="fas fa-sync-alt"></i></div>
+                <div class="icon-option" data-icon="fa-drafting-compass"><i class="fas fa-drafting-compass"></i></div>
+                <div class="icon-option" data-icon="fa-chart-line"><i class="fas fa-chart-line"></i></div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button id="cancel-edit" class="btn btn-secondary">Cancel</button>
+            <button id="save-node" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+    
+    <!-- Event Log Panel -->
+    <div id="event-log">
+        <h4>Event Log <i class="fas fa-times close-log"></i></h4>
+        <div id="log-entries"></div>
+    </div>
+    
+    <!-- Information Modal -->
+    <div id="info-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+            <h2>Roadmap Generator Documentation</h2>
+            
+            <h3><i class="fas fa-road"></i> Overview</h3>
+            <p>This enhanced roadmap generator implements a path-based editing system with context-sensitive actions.</p>
+            
+            <h3><i class="fas fa-cogs"></i> Core Components</h3>
+            <ul>
+                <li><strong>Paths</strong> - Selectable connection lines (double-click)</li>
+                <li><strong>Anchors</strong> - Special connection points between branches</li>
+                <li><strong>Ties</strong> - Fixed-length connections between anchors and nodes</li>
+                <li><strong>Contextual Actions</strong> - Different behaviors based on selection</li>
+            </ul>
+            
+            <h3><i class="fas fa-edit"></i> Editing Features</h3>
+            <ul>
+                <li><strong>Path Selection</strong> - Double-click any path to select it</li>
+                <li><strong>Visual Feedback</strong> - Glowing paths and particle effects</li>
+                <li><strong>Contextual Node Addition</strong> - Add nodes directly to selected paths</li>
+                <li><strong>Branch Creation</strong> - Create new branches from existing nodes</li>
+            </ul>
+            
+            <h3><i class="fas fa-mouse-pointer"></i> Navigation</h3>
+            <ul>
+                <li><strong>Path Highlighting</strong> - Visual indication of selected paths</li>
+                <li><strong>Event Logging</strong> - Detailed diagnostics in bottom-right panel</li>
+                <li><strong>Minimap</strong> - Navigate between branches quickly</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Link to the external JavaScript logic file -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
