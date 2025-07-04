@@ -97,7 +97,6 @@ To ensure scalability and maintainability, the project will follow a robust, mod
     ├── main.js                 # The application's entry point.
     ├── store.js                # The global state management object.
     ├── ThemeManager.js         # The dedicated module for handling themes.
-    ├── initial-data.js         # Contains the default roadmap data.
     └── components/
         ├── Canvas.js
         ├── EditorToolbar.js

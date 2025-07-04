@@ -35,6 +35,11 @@ const store = {
         this._subscribers.forEach(callback => callback());
     },
 
+    selectElement(id, type) {
+        this._state.ui.selectedElement = { id, type };
+        this._notify();
+    },
+
     // --- Mutations ---
 
     setState(newState) {

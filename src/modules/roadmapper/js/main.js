@@ -22,34 +22,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (savedData) {
         store.setState(JSON.parse(savedData));
     } else {
-        const { initialData } = await import('./initial-data.js');
+        const initialData = parseDataFromHTML();
         store.setState(initialData);
     }
 
     // 3. Instantiate Components
     const canvas = new Canvas(document.getElementById('canvas-container'));
-    const editorToolbar = new EditorToolbar(document.getElementById('editor-toolbar-container'));
-    const viewportToolbar = new ViewportToolbar(document.getElementById('viewport-toolbar-container'));
-    const infoPanel = new InfoPanel(document.getElementById('info-panel-container'));
-    const minimap = new Minimap(document.getElementById('minimap-container'));
-    const nodeEditor = new NodeEditor(document.getElementById('node-editor-container'));
-    const cardManager = new CardManager(document.getElementById('card-manager-container'));
+    // const editorToolbar = new EditorToolbar(document.getElementById('editor-toolbar-container'));
+    // const viewportToolbar = new ViewportToolbar(document.getElementById('viewport-toolbar-container'));
+    // const infoPanel = new InfoPanel(document.getElementById('info-panel-container'));
+    // const minimap = new Minimap(document.getElementById('minimap-container'));
+    // const nodeEditor = new NodeEditor(document.getElementById('node-editor-container'));
+    // const cardManager = new CardManager(document.getElementById('card-manager-container'));
 
     // 4. Render & Mount
     canvas.render();
-    editorToolbar.render();
-    viewportToolbar.render();
-    infoPanel.render();
-    minimap.render();
-    nodeEditor.render();
-    cardManager.render();
+    // editorToolbar.render();
+    // viewportToolbar.render();
+    // infoPanel.render();
+    // minimap.render();
+    // nodeEditor.render();
+    // cardManager.render();
 
     // 5. Establish Reactivity
     store.subscribe(() => {
         canvas.render();
-        editorToolbar.render();
-        viewportToolbar.render();
-        cardManager.render();
+        // editorToolbar.render();
+        // viewportToolbar.render();
+        // cardManager.render();
         // ... and so on for other components that need to react to state changes
     });
 
@@ -62,3 +62,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         store.showCardForNode(e.detail.nodeId);
     });
 });
+
+function parseDataFromHTML() {
+    const nodes = [];
+    document.querySelectorAll('.node-data').forEach(el => {
+        const data = el.dataset;
+        nodes.push({
+            id: data.id,
+            branchId: data.branchId,
+            type: data.type,
+            position: { x: parseInt(data.x, 10), y: parseInt(data.y, 10) },
+            title: data.title,
+            icon: data.icon,
+            content: {
+                brief: data.brief,
+                stats: JSON.parse(data.stats || '{}'),
+                cards: JSON.parse(data.cards || '[]')
+            }
+        });
+    });
+
+    const connections = [];
+    document.querySelectorAll('.connection-data').forEach(el => {
+        const data = el.dataset;
+        connections.push({
+            id: data.id,
+            type: data.type,
+            source: data.source,
+            target: data.target
+        });
+    });
+
+    const branches = [];
+    document.querySelectorAll('.branch-data').forEach(el => {
+        const data = el.dataset;
+        branches.push({
+            id: data.id,
+            title: data.title,
+            color: data.color
+        });
+    });
+
+    return { nodes, connections, branches };
+}

@@ -7,7 +7,7 @@ This document details the JavaScript logic and functions of the Roadmap module.
 ## 1. Initialization & State
 
 -   **`initializeRoadmap()`**: This is the entry point for the entire application. It is called once the DOM is fully loaded. Its primary role is to orchestrate the initial setup by calling the data parsing and rendering functions.
--   **`parseNodesFromHTML()`**: This function is responsible for reading the hardcoded data from the hidden `div` elements within the `#roadmap-data` container. It iterates through these elements, extracts the `data-*` attributes, and transforms them into structured JavaScript objects that are then stored in the `allBranches` and `allNodesData` global arrays.
+-   **`parseDataFromHTML()`**: This function is responsible for reading the declarative data from the hidden `div` elements within the `#roadmap-data` container in `roadmapper.html`. It iterates through these elements, extracts the `data-*` attributes, and transforms them into structured JavaScript objects that are then loaded into the application's state.
 
 ---
 

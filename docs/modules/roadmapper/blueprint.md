@@ -25,7 +25,7 @@ This is the definitive file and folder layout for the `roadmapper` module.
     ├── main.js                 # The application's entry point and orchestrator.
     ├── store.js                # The global state management object (The "Brain").
     ├── ThemeManager.js         # The dedicated module for handling themes.
-    ├── initial-data.js         # Contains the default roadmapper data for first load.
+    // DEPRECATED: initial-data.js is no longer used.
     └── components/
         ├── Canvas.js           # Renders nodes, paths, and handles canvas interactions.
         ├── EditorToolbar.js    # Manages the editor button and its associated panel.

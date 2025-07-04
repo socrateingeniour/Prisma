@@ -1,4 +1,5 @@
 import { store } from '../store.js';
+import { themeManager } from '../ThemeManager.js';
 
 export class Canvas {
     constructor(container) {
@@ -30,15 +31,30 @@ export class Canvas {
         const nodeContainer = this.container.querySelector('#node-container');
         if (!nodeContainer) return;
 
+        const { branches } = store.getState();
+        const branchesById = Object.fromEntries(branches.map(b => [b.id, b]));
+
         const nodesHtml = nodes.map(node => {
             const nodeTypeClass = node.type === 'parent' ? 'parent-node' : 'secondary-node';
+            const branch = branchesById[node.branchId];
+            const nodeColor = branch ? branch.color : 'var(--color-accent-primary)';
+            const iconClass = themeManager.getIcon(node.icon) || themeManager.getIcon('nodeDefault');
+
+            // Position labels to the side
+            const labelPosClass = node.position.x > (this.container.offsetWidth / 2) ? 'label-pos-left' : 'label-pos-right';
+
             return `
                 <div 
-                    class="roadmap-node ${nodeTypeClass}" 
+                    class="roadmap-node" 
                     id="${node.id}" 
                     style="left: ${node.position.x}px; top: ${node.position.y}px;"
                 >
-                    <div class="node-label">${node.title}</div>
+                    <div class="node-content-wrapper">
+                        <div class="node-label ${labelPosClass}">${node.title}</div>
+                        <div class="${nodeTypeClass}" style="background-color: ${nodeColor};">
+                            <i class="${iconClass}"></i>
+                        </div>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -97,18 +113,7 @@ export class Canvas {
     addCanvasEventListeners() {
         this.container.addEventListener('wheel', (e) => {
             e.preventDefault();
-            const { ui } = store.getState();
-
-            if (ui.scrollBehavior === 'zoom') {
-                const zoomFactor = e.deltaY > 0 ? -0.1 : 0.1;
-                store.setZoomLevel(ui.zoomLevel + zoomFactor);
-            } else { // pan
-                const newPanOffset = {
-                    x: ui.panOffset.x - e.deltaX,
-                    y: ui.panOffset.y - e.deltaY
-                };
-                store.setPanOffset(newPanOffset);
-            }
+            // Zoom functionality temporarily disabled as per user request.
         });
     }
 

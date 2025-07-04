@@ -4,37 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prisma Roadmapper</title>
-    <!-- Font Awesome for icons, as specified in the theme manifest -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Theme variables -->
     <link rel="stylesheet" href="css/themes.css">
-    <!-- Main component styles -->
     <link rel="stylesheet" href="css/main.css">
-    <!-- Main application logic -->
     <script type="module" src="js/main.js"></script>
 </head>
 <body>
 
-    <!-- Container for the main canvas (nodes, paths) -->
-    <div id="canvas-container"></div>
+    <div class="container">
+        <header>
+            <h1 class="plaque">Game Development Pathway</h1>
+        </header>
 
-    <!-- Container for the top-left editor toolbar -->
-    <div id="editor-toolbar-container"></div>
+        <div id="canvas-container"></div>
+    </div>
 
-    <!-- Container for the top-right viewport controls (zoom, pan) -->
-    <div id="viewport-toolbar-container"></div>
+    <!-- Hidden data island for defining the roadmap structure -->
+    <div id="roadmap-data" style="display: none;">
+        <!-- Branches -->
+        <div class="branch-data" data-id="branch-1" data-title="Web Development Basics" data-color="var(--color-branch-1)"></div>
+        <div class="branch-data" data-id="branch-2" data-title="Higher Education" data-color="var(--color-branch-2)"></div>
 
-    <!-- Container for the info panel modal -->
-    <div id="info-panel-container"></div>
+        <!-- Nodes -->
+        <div class="node-data" 
+             data-id="node-1" 
+             data-branch-id="branch-1" 
+             data-type="parent" 
+             data-x="100" 
+             data-y="100" 
+             data-title="Intro to Web Dev" 
+             data-icon="nodeDefault"
+             data-brief="Start your journey with the fundamental building blocks of the web."
+             data-stats='{"Difficulty": "1/5", "Workload": "Low"}'
+             data-cards='[{"type": "course", "data_source": "cs101"}]'></div>
 
-    <!-- Container for the minimap -->
-    <div id="minimap-container"></div>
+        <div class="node-data" 
+             data-id="node-2" 
+             data-branch-id="branch-1" 
+             data-type="parent" 
+             data-x="400" 
+             data-y="100" 
+             data-title="JavaScript Fundamentals" 
+             data-icon="nodeDefault"
+             data-brief="Learn the language of the web."
+             data-stats='{}'
+             data-cards='[]'></div>
 
-    <!-- Container for the node editor modal -->
-    <div id="node-editor-container"></div>
+        <div class="node-data" 
+             data-id="node-3" 
+             data-branch-id="branch-2" 
+             data-type="parent" 
+             data-x="100" 
+             data-y="300" 
+             data-title="Intro to University" 
+             data-icon="nodeDefault"
+             data-brief="Explore higher education options."
+             data-stats='{"University": "UCLA", "Status": "Applied"}'
+             data-cards='[{"type": "college", "data_source": "ucla"}]'></div>
 
-    <!-- Container for the rich content cards -->
-    <div id="card-manager-container"></div>
+        <!-- Connections -->
+        <div class="connection-data" data-id="conn-1" data-type="main" data-source="node-1" data-target="node-2"></div>
+    </div>
 
 </body>
 </html>
