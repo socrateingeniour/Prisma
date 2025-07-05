@@ -21,7 +21,10 @@
       "limited": "fas fa-lock-open",
       "free": "fas fa-unlock",
       "structured": "fas fa-sitemap",
-      "organic": "fas fa-bezier-curve"
+      "organic": "fas fa-bezier-curve",
+      "lightbulb": "fas fa-lightbulb",
+      "js": "fab fa-js",
+      "university": "fas fa-university"
     }
   },
   "fonts": {

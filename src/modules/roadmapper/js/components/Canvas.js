@@ -22,6 +22,7 @@ export class Canvas {
         `;
 
         this.drawNodes(nodes);
+        this.drawBranches(branches, nodes);
         this.drawPaths(connections);
         this.addNodeEventListeners(this.container.querySelector('#node-container'));
         this.addCanvasEventListeners();
@@ -117,6 +118,45 @@ export class Canvas {
         });
     }
 
+    drawBranches(branches, nodes) {
+        const branchGroup = this.container.querySelector('#branch-group');
+        if (!branchGroup) return;
+
+        let branchesHtml = '';
+        const centerX = 500; // Assuming 500 is the central X-coordinate for your nodes
+
+        branches.forEach(branch => {
+            const branchNodes = nodes.filter(node => node.branchId === branch.id);
+            if (branchNodes.length === 0) return;
+
+            // Find min and max Y coordinates for nodes in this branch
+            let minY = Infinity;
+            let maxY = -Infinity;
+            branchNodes.forEach(node => {
+                minY = Math.min(minY, node.position.y);
+                maxY = Math.max(maxY, node.position.y);
+            });
+
+            // Add some padding
+            minY -= 50;
+            maxY += 50;
+
+            // Draw a vertical line for the branch
+            branchesHtml += `
+                <line 
+                    x1="${centerX}" y1="${minY}" 
+                    x2="${centerX}" y2="${maxY}" 
+                    stroke="${branch.color}" 
+                    stroke-width="5" 
+                    stroke-linecap="round"
+                    class="branch-line"
+                />
+            `;
+        });
+
+        branchGroup.innerHTML = branchesHtml;
+    }
+
     drawPaths(connections) {
         const pathGroup = this.container.querySelector('#path-group');
         if (!pathGroup) return;
@@ -137,8 +177,10 @@ export class Canvas {
             );
 
             const pathClass = conn.type === 'main' ? 'visible-path' : 'secondary-path';
+            const branch = store.getState().branches.find(b => b.id === sourceNode.branchId);
+            const pathColor = branch ? branch.color : 'var(--color-accent-primary)';
 
-            return `<path d="${pathD}" class="${pathClass}" id="${conn.id}" />`;
+            return `<path d="${pathD}" class="${pathClass}" id="${conn.id}" stroke="${pathColor}" />`;
         }).join('');
 
         pathGroup.innerHTML = pathsHtml;

@@ -129,10 +129,14 @@ h1.plaque {
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    color: var(--color-background-primary); 
+    color: var(--color-text-primary); 
     box-shadow: 0 5px 20px rgba(0,0,0,0.5); 
     transition: all 0.3s ease; 
     position: relative;
+}
+
+.node-content-wrapper:hover .fas {
+    filter: drop-shadow(0 0 8px var(--color-accent-primary));
 }
 
 .parent-node { 
@@ -163,6 +167,8 @@ h1.plaque {
 
 .fas { 
     transition: filter 0.3s ease, color 0.3s ease; 
+    font-size: 1.2em; /* Ensure icons are a reasonable size */
+    color: var(--color-text-primary); /* Ensure icons are visible */
 }
 
 .node-content-wrapper:hover .fas { 
